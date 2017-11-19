@@ -8,23 +8,14 @@ import org.apache.logging.log4j.Logger;
  *
  * @author indiketa
  */
-public enum Log {
+public enum DLog {
 
     MANAGER,
-    WIRE,
-    WEB_API,
-    TECDOC,
-    SERVIDOR,
-    API,
-    SEGURETAT,
-    CONSULTA_ARTICULOS,
-    IDENTIFICACION,
-    ESTADISTICA,
-    CONNECTOR;
+    WIRE;
 
     private final Logger logger;
 
-    private Log() {
+    private DLog() {
         this.logger = LogManager.getLogger(name());
     }
 

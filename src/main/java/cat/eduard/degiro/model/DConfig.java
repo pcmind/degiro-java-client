@@ -6,23 +6,23 @@ package cat.eduard.degiro.model;
  */
 public class DConfig {
 
-    public String tradingUrl;
-    public Integer clientId;
-    public String i18nUrl;
-    public String paymentServiceUrl;
-    public String reportingUrl;
-    public String paUrl;
-    public String vwdQuotecastServiceUrl;
-    public String sessionId;
-    public String productSearchUrl;
-    public String dictionaryUrl;
-    public String taskManagerUrl;
-    public String firstLoginWizardUrl;
-    public String loginUrl;
-    public String vwdGossipsUrl;
-    public String companiesServiceUrl;
-    public String productTypesUrl;
-    public String vwdNewsUrl;
+    private String tradingUrl;
+    private Integer clientId;
+    private String i18nUrl;
+    private String paymentServiceUrl;
+    private String reportingUrl;
+    private String paUrl;
+    private String vwdQuotecastServiceUrl;
+    private String sessionId;
+    private String productSearchUrl;
+    private String dictionaryUrl;
+    private String taskManagerUrl;
+    private String firstLoginWizardUrl;
+    private String loginUrl;
+    private String vwdGossipsUrl;
+    private String companiesServiceUrl;
+    private String productTypesUrl;
+    private String vwdNewsUrl;
 
     public String getTradingUrl() {
         return tradingUrl;

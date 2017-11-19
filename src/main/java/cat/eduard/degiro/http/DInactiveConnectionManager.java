@@ -1,6 +1,6 @@
 package cat.eduard.degiro.http;
 
-import cat.eduard.degiro.log.Log;
+import cat.eduard.degiro.log.DLog;
 import java.util.concurrent.TimeUnit;
 import org.apache.http.conn.HttpClientConnectionManager;
 
@@ -9,7 +9,7 @@ import org.apache.http.conn.HttpClientConnectionManager;
  * @author indiketa
  */
 class DInactiveConnectionManager extends Thread {
-    
+
     private final HttpClientConnectionManager connectionManager;
     private volatile boolean shutdown;
 
@@ -28,7 +28,7 @@ class DInactiveConnectionManager extends Thread {
                     connectionManager.closeExpiredConnections();
                     connectionManager.closeIdleConnections(30, TimeUnit.SECONDS);
                 } catch (Exception e) {
-                    Log.CONNECTOR.error(e);
+                    DLog.WIRE.error("Exception closing expired connections", e);
                 }
             }
         }
@@ -40,5 +40,5 @@ class DInactiveConnectionManager extends Thread {
             notifyAll();
         }
     }
-    
+
 }

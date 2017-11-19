@@ -1,9 +1,12 @@
 package cat.eduard.degiro.http;
 
-import cat.eduard.degiro.log.Log;
+import cat.eduard.degiro.log.DLog;
+import cat.eduard.degiro.model.DClient;
+import cat.eduard.degiro.model.DConfig;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
+import static com.oracle.util.Checksums.update;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
@@ -22,7 +25,6 @@ import org.apache.http.protocol.BasicHttpContext;
  */
 public class DCommunication extends DHttpManager {
 
-    
     private final Gson gson;
     private final BasicHttpContext context;
     private static long call;
@@ -32,12 +34,11 @@ public class DCommunication extends DHttpManager {
         this.context = new BasicHttpContext();
     }
 
-    
-        public DResponse getData(String base, String uri, Object data) throws UnsupportedEncodingException, IOException {
+    public DResponse getUrlData(String base, String uri, Object data) throws UnsupportedEncodingException, IOException {
 
         long callId = ++call;
         String url = base + uri;
-        Log.WIRE.trace(String.format("[%d] Call %s", callId, url));
+        DLog.WIRE.trace(String.format("[%d] Call %s", callId, url));
         HttpUriRequest request = null;
 
         if (data != null) {
@@ -51,46 +52,47 @@ public class DCommunication extends DHttpManager {
         }
 
         DResponse dResponse;
-        
+
         try (CloseableHttpResponse response = httpClient.execute(request, context)) {
             dResponse = new DResponse();
             dResponse.setStatus(response.getStatusLine().getStatusCode());
             dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
 
-    
         }
 
         return dResponse;
 
     }
 
-    public DResponse getData(Object options) throws UnsupportedEncodingException, IOException {
-//
-//        long callId = ++call;
-//        String url = BASE_TRADER_URL + "/v5/update/XXX;jsessionid=" + getJSessionId() + "?";
-//        Log.WIRE.trace(String.format("[%d] Call %s", callId, url));
-//        HttpPost post = new HttpPost(url);
-//        post.addHeader("Content-Type", "application/json");
-//
-//        if (data != null) {
-//            String jsonData = GSON.toJson(data);
-//            Log.WIRE.trace(String.format("[%d] Payload %s", callId, jsonData));
-//            post.setEntity(new StringEntity(jsonData));
-//        }
-//        DResponse dResponse = null;
-//        try (CloseableHttpResponse response = HTTP_CLIENT.execute(post, CONTEXT)) {
-//            dResponse = new DResponse();
-//            Log.WIRE.trace(String.format("[%d] Status %d", callId, response.getStatusLine().getStatusCode()));
-//            dResponse.setStatus(response.getStatusLine().getStatusCode());
-//
-//            for (Header header : response.getAllHeaders()) {
-//                Log.WIRE.trace(String.format("[%d] Header %s: %s", callId, header.getName(), header.getValue()));
-//            }
-//        }
-//
-//        return dResponse;
+    public DResponse getData(DClient client, DConfig config, String params, Object data) throws IOException {
 
-        return null;
+        long callId = ++call;
+
+//         `${urls.tradingUrl}v5/update/${session.account};jsessionid=${session.id}?${params}`
+        String url = config.getTradingUrl() + "v5/update/" + client.getIntAccount() + ";jsessionid=" + getJSessionId() + "?" + params;
+        DLog.WIRE.trace(String.format("[%d] Call %s", callId, url));
+        HttpUriRequest request = null;
+
+        if (data != null) {
+            HttpPost post = new HttpPost(url);
+            post.addHeader("Content-Type", "application/json");
+            String jsonData = gson.toJson(data);
+            post.setEntity(new StringEntity(jsonData));
+            request = post;
+        } else {
+            request = new HttpGet(url);
+        }
+
+        DResponse dResponse;
+
+        try (CloseableHttpResponse response = httpClient.execute(request, context)) {
+            dResponse = new DResponse();
+            dResponse.setStatus(response.getStatusLine().getStatusCode());
+            dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
+
+        }
+
+        return dResponse;
 
     }
 

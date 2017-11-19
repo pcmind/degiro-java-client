@@ -1,6 +1,8 @@
 package cat.eduard.degiro;
 
-import cat.eduard.degiro.log.Log;
+import cat.eduard.degiro.log.DLog;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +27,7 @@ public class Main {
                             props.load(is);
                         }
                     } catch (IOException e) {
-                        Log.MANAGER.error("Error cred", e);
+                        DLog.MANAGER.error("Error cred", e);
                     }
                 }
             }
@@ -45,7 +47,7 @@ public class Main {
 
         DManager degiro = new DManager(creds);
 
-        degiro.getPortfolio();
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
     }
 
 }

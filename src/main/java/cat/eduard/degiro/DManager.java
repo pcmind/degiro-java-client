@@ -6,6 +6,7 @@ import cat.eduard.degiro.model.DClient;
 import cat.eduard.degiro.model.DConfig;
 import cat.eduard.degiro.model.DLogin;
 import cat.eduard.degiro.model.DPortfolio;
+import cat.eduard.degiro.model.raw.DRawPortfolio;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import java.io.IOException;
@@ -20,6 +21,7 @@ public class DManager {
     private final DCommunication comm;
     private DConfig config;
     private DClient client;
+    
     private final Gson gson;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
 
@@ -35,6 +37,20 @@ public class DManager {
         DPortfolio portfolio = null;
         ensureLogged();
 
+        try {
+
+            DResponse response = comm.getData(client, config, "portfolio=0", null);
+
+            if (response.getStatus() != 200 && response.getStatus() != 201) {
+                throw new DegiroException("Bad portfolio HTTP status " + response.getStatus());
+            }
+
+            DRawPortfolio rawPortfolio = gson.fromJson(response.getText(), DRawPortfolio.class);
+            portfolio = DUtils.convert(rawPortfolio);
+
+        } catch (IOException e) {
+            throw new DegiroException("IOException while retrieving portfolio", e);
+        }
         return portfolio;
     }
 
@@ -51,7 +67,7 @@ public class DManager {
             login.setUsername(credentials.getUsername());
             login.setPassword(credentials.getPassword());
 
-            DResponse response = comm.getData(BASE_TRADER_URL, "/login/secure/login", login);
+            DResponse response = comm.getUrlData(BASE_TRADER_URL, "/login/secure/login", login);
 
             if (response.getStatus() != 200) {
                 if (response.getStatus() == 400) {
@@ -61,7 +77,7 @@ public class DManager {
                 }
             }
 
-            response = comm.getData(BASE_TRADER_URL, "/login/secure/config", null);
+            response = comm.getUrlData(BASE_TRADER_URL, "/login/secure/config", null);
 
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad config HTTP status " + response.getStatus());
@@ -69,7 +85,7 @@ public class DManager {
                 config = gson.fromJson(response.getText(), DConfig.class);
             }
 
-            response = comm.getData(config.getPaUrl(), "client?sessionId=" + comm.getJSessionId(), null);
+            response = comm.getUrlData(config.getPaUrl(), "client?sessionId=" + comm.getJSessionId(), null);
 
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad client info HTTP status " + response.getStatus());

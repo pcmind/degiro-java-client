@@ -1,6 +1,6 @@
 package cat.eduard.degiro.http;
 
-import cat.eduard.degiro.log.Log;
+import cat.eduard.degiro.log.DLog;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -54,7 +54,7 @@ public class DHttpManager {
             contextSSL.loadTrustMaterial(null, new TrustSelfSignedStrategy());
             sslSocketFactory = new SSLConnectionSocketFactory(contextSSL.build(), new DefaultHostnameVerifier());
         } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-            Log.API.fatal("Error creant la factoria SSL", e);
+            DLog.WIRE.fatal("Exception creating SSL socket factory", e);
         }
 
         Registry<ConnectionSocketFactory> tipusConnexions = RegistryBuilder.<ConnectionSocketFactory>create()
