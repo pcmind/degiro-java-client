@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package cat.eduard.degiro;
 
 import cat.eduard.degiro.http.DCommunication;
@@ -17,7 +12,7 @@ import java.io.IOException;
 
 /**
  *
- * @author casa
+ * @author indiketa
  */
 public class DManager {
 
@@ -26,7 +21,7 @@ public class DManager {
     private DConfig config;
     private DClient client;
     private final Gson gson;
-    private final String BASE_TRADER_URL = "https://trader.degiro.nl";
+    private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
 
     public DManager(DCredentials credencials) {
         this.credentials = credencials;
@@ -83,7 +78,7 @@ public class DManager {
             }
 
         } catch (IOException e) {
-            throw new DegiroException("Exception caught while login", e);
+            throw new DegiroException("IOException while retrieving user information", e);
         }
 
     }

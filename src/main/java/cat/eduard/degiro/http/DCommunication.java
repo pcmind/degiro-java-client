@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package cat.eduard.degiro.http;
 
 import cat.eduard.degiro.log.Log;
@@ -13,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -24,18 +18,18 @@ import org.apache.http.protocol.BasicHttpContext;
 
 /**
  *
- * @author casa
+ * @author indiketa
  */
 public class DCommunication extends DHttpManager {
 
     
-    private final Gson GSON;
-    private final BasicHttpContext CONTEXT;
+    private final Gson gson;
+    private final BasicHttpContext context;
     private static long call;
 
     public DCommunication() {
-        this.GSON = new Gson();
-        this.CONTEXT = new BasicHttpContext();
+        this.gson = new Gson();
+        this.context = new BasicHttpContext();
     }
 
     
@@ -49,7 +43,7 @@ public class DCommunication extends DHttpManager {
         if (data != null) {
             HttpPost post = new HttpPost(url);
             post.addHeader("Content-Type", "application/json");
-            String jsonData = GSON.toJson(data);
+            String jsonData = gson.toJson(data);
             post.setEntity(new StringEntity(jsonData));
             request = post;
         } else {
@@ -58,7 +52,7 @@ public class DCommunication extends DHttpManager {
 
         DResponse dResponse;
         
-        try (CloseableHttpResponse response = HTTP_CLIENT.execute(request, CONTEXT)) {
+        try (CloseableHttpResponse response = httpClient.execute(request, context)) {
             dResponse = new DResponse();
             dResponse.setStatus(response.getStatusLine().getStatusCode());
             dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
@@ -125,7 +119,7 @@ public class DCommunication extends DHttpManager {
 
     public String getJSessionId() {
         String value = null;
-        List<Cookie> cookies = COOKIE_STORE.getCookies();
+        List<Cookie> cookies = cookieStore.getCookies();
 
         int i = 0;
         while (i < cookies.size() && !cookies.get(i).getName().equalsIgnoreCase("JSESSIONID")) {

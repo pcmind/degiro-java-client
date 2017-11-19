@@ -33,18 +33,18 @@ import org.apache.http.ssl.SSLContextBuilder;
 
 /**
  *
- * @author ecatala
+ * @author indiketa
  */
 public class DHttpManager {
 
-    protected final CloseableHttpClient HTTP_CLIENT;
-    protected final CookieStore COOKIE_STORE;
+    protected final CloseableHttpClient httpClient;
+    protected final CookieStore cookieStore;
     private static DInactiveConnectionManager inactiveConnections = null;
-    private int DEFAULT_KEEP_ALIVE_TIMEOUT = 90;
-    private int CONNECTION_SYN_TIMEOUT_SECONDS = 10;
-    private int REPLY_TIMEOUT_SECONDS = 60;
-    private int MAX_CONNECTIONS_PER_ROUTE = 20;
-    private int TOTAL_MAX_CONNECTIONS = MAX_CONNECTIONS_PER_ROUTE * 27;
+    private static final int DEFAULT_KEEP_ALIVE_TIMEOUT = 90;
+    private static final int CONNECTION_SYN_TIMEOUT_SECONDS = 10;
+    private static final int REPLY_TIMEOUT_SECONDS = 60;
+    private static final int MAX_CONNECTIONS_PER_ROUTE = 20;
+    private static final int TOTAL_MAX_CONNECTIONS = MAX_CONNECTIONS_PER_ROUTE * 27;
 
     protected DHttpManager() {
 
@@ -103,25 +103,25 @@ public class DHttpManager {
                 .setTcpNoDelay(true)
                 .build();
 
-        COOKIE_STORE = new BasicCookieStore();
-        
-        HTTP_CLIENT = HttpClients.custom()
+        cookieStore = new BasicCookieStore();
+
+        httpClient = HttpClients.custom()
                 .setConnectionManager(cm)
                 .setDefaultRequestConfig(requestConfig)
                 .setKeepAliveStrategy(estrategiaKeepAlive)
                 .setDefaultSocketConfig(sc)
-                .setDefaultCookieStore(COOKIE_STORE)
+                .setDefaultCookieStore(cookieStore)
                 .build();
 
     }
 
     public HttpClient getClient() {
-        return HTTP_CLIENT;
+        return httpClient;
     }
 
     public void shutdown() throws IOException {
         inactiveConnections.shutdown();
-        HTTP_CLIENT.close();
+        httpClient.close();
     }
 
 }
