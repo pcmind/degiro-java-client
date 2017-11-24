@@ -1,12 +1,11 @@
-package cat.eduard.degiro.http;
+package cat.indiketa.degiro.http;
 
-import cat.eduard.degiro.log.DLog;
-import cat.eduard.degiro.model.DClient;
-import cat.eduard.degiro.model.DConfig;
+import cat.indiketa.degiro.log.DLog;
+import cat.indiketa.degiro.model.DClient;
+import cat.indiketa.degiro.model.DConfig;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
-import static com.oracle.util.Checksums.update;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;

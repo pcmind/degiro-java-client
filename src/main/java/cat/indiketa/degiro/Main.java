@@ -1,6 +1,6 @@
-package cat.eduard.degiro;
+package cat.indiketa.degiro;
 
-import cat.eduard.degiro.log.DLog;
+import cat.indiketa.degiro.log.DLog;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
@@ -47,7 +47,10 @@ public class Main {
 
         DManager degiro = new DManager(creds);
 
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
+//        degiro.getCashFunds();
+        
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
     }
 
 }

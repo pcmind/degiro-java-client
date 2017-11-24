@@ -1,6 +1,6 @@
-package cat.eduard.degiro.http;
+package cat.indiketa.degiro.http;
 
-import cat.eduard.degiro.log.DLog;
+import cat.indiketa.degiro.log.DLog;
 import java.util.concurrent.TimeUnit;
 import org.apache.http.conn.HttpClientConnectionManager;
 

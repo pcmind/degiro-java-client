@@ -1,4 +1,4 @@
-package cat.eduard.degiro;
+package cat.indiketa.degiro;
 
 public interface DCredentials {
 

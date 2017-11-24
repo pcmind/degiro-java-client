@@ -1,12 +1,14 @@
-package cat.eduard.degiro;
+package cat.indiketa.degiro;
 
-import cat.eduard.degiro.http.DCommunication;
-import cat.eduard.degiro.http.DCommunication.DResponse;
-import cat.eduard.degiro.model.DClient;
-import cat.eduard.degiro.model.DConfig;
-import cat.eduard.degiro.model.DLogin;
-import cat.eduard.degiro.model.DPortfolio;
-import cat.eduard.degiro.model.raw.DRawPortfolio;
+import cat.indiketa.degiro.http.DCommunication;
+import cat.indiketa.degiro.http.DCommunication.DResponse;
+import cat.indiketa.degiro.model.DCashFunds;
+import cat.indiketa.degiro.model.DClient;
+import cat.indiketa.degiro.model.DConfig;
+import cat.indiketa.degiro.model.DLogin;
+import cat.indiketa.degiro.model.DPortfolio;
+import cat.indiketa.degiro.model.raw.DRawCashFunds;
+import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import java.io.IOException;
@@ -21,7 +23,7 @@ public class DManager {
     private final DCommunication comm;
     private DConfig config;
     private DClient client;
-    
+
     private final Gson gson;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
 
@@ -52,6 +54,30 @@ public class DManager {
             throw new DegiroException("IOException while retrieving portfolio", e);
         }
         return portfolio;
+    }
+
+    public DCashFunds getCashFunds() throws DegiroException {
+
+        DCashFunds cashFunds = null;
+        ensureLogged();
+
+        try {
+
+            DResponse response = comm.getData(client, config, "cashFunds=0", null);
+
+            if (response.getStatus() != 200 && response.getStatus() != 201) {
+                throw new DegiroException("Bad cash funds HTTP status " + response.getStatus());
+            }
+
+            System.out.println(response.getText());
+
+            DRawCashFunds rawCashFunds = gson.fromJson(response.getText(), DRawCashFunds.class);
+            cashFunds = DUtils.convert(rawCashFunds);
+
+        } catch (IOException e) {
+            throw new DegiroException("IOException while retrieving cash funds", e);
+        }
+        return cashFunds;
     }
 
     private void ensureLogged() throws DegiroException {

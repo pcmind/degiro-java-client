@@ -1,4 +1,4 @@
-package cat.eduard.degiro.model.raw;
+package cat.indiketa.degiro.model.raw;
 
 import java.util.List;
 
