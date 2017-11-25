@@ -47,10 +47,11 @@ public class Main {
 
         DManager degiro = new DManager(creds);
 
-//        degiro.getCashFunds();
+//        degiro.getOrders();
         
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getOrders()));
     }
 
 }

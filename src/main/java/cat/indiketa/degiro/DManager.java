@@ -6,8 +6,10 @@ import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
 import cat.indiketa.degiro.model.DLogin;
+import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
+import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
@@ -78,6 +80,29 @@ public class DManager {
             throw new DegiroException("IOException while retrieving cash funds", e);
         }
         return cashFunds;
+    }
+    
+    public DOrders getOrders() throws DegiroException {
+
+        DOrders orders = null;
+        ensureLogged();
+
+        try {
+
+            DResponse response = comm.getData(client, config, "orders=0", null);
+
+            if (response.getStatus() != 200 && response.getStatus() != 201) {
+                throw new DegiroException("Bad cash funds HTTP status " + response.getStatus());
+            }
+
+
+            DRawOrders rawOrders = gson.fromJson(response.getText(), DRawOrders.class);
+            orders = DUtils.convert(rawOrders);
+
+        } catch (IOException e) {
+            throw new DegiroException("IOException while retrieving cash funds", e);
+        }
+        return orders;
     }
 
     private void ensureLogged() throws DegiroException {

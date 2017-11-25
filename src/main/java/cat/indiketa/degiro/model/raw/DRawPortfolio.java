@@ -62,7 +62,6 @@ public class DRawPortfolio {
     public static class Value {
 
         private String name;
-        private long id;
         private List<Value_> value = null;
         private boolean isAdded;
 
@@ -72,14 +71,6 @@ public class DRawPortfolio {
 
         public void setName(String name) {
             this.name = name;
-        }
-
-        public long getId() {
-            return id;
-        }
-
-        public void setId(long id) {
-            this.id = id;
         }
 
         public List<Value_> getValue() {
