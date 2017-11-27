@@ -9,11 +9,14 @@ import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DOrders.DOrder;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DPortfolio.DProductRow;
+import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value_;
+import cat.indiketa.degiro.model.raw.DRawTransactions;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import java.lang.reflect.InvocationTargetException;
@@ -266,5 +269,86 @@ public class DUtils {
         }
         return parsed;
     }
+    
+    
+    public static DLastTransactions convert(DRawTransactions rawOrders) {
+        DLastTransactions transactions = new DLastTransactions();
+        List<DTransaction> list = new LinkedList<>();
 
+        for (Value value : rawOrders.getTransactions().getValue()) {
+            DTransaction order = convertTransaction(value);
+            list.add(order);
+        }
+
+        transactions.setTransactions(list);
+
+        return transactions;
+
+    }
+
+    public static DTransaction convertTransaction(Value row) {
+
+        DTransaction transaction = new DTransaction();
+
+        for (Value_ value : row.getValue()) {
+
+            try {
+
+                String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
+
+                switch (value.getName()) {
+                    case "contractType":
+                    case "contractSize":
+                        int intValue = (int) (double) value.getValue();
+                        DTransaction.class.getMethod(methodName, int.class).invoke(transaction, intValue);
+                        break;
+                    case "productId":
+                    case "size":
+                    case "quantity":
+                    case "id":
+                        long longValue = (long) (double) value.getValue();
+                        DTransaction.class.getMethod(methodName, long.class).invoke(transaction, longValue);
+                        break;
+                    case "product":
+                    case "currency":
+                    case "buysell":
+                        String stringValue = (String) value.getValue();
+                        DTransaction.class.getMethod(methodName, String.class).invoke(transaction, stringValue);
+                        break;
+
+                    case "date":
+                        Calendar calendar = processDate((String) value.getValue());
+                        DTransaction.class.getMethod(methodName, Calendar.class).invoke(transaction, calendar);
+                        break;
+                    case "orderType":
+                        transaction.setOrderType(DOrderType.getOrderByValue((int) (double) value.getValue()));
+                        break;
+                    case "orderTime":
+                        transaction.setOrderTime(DOrderTime.getOrderByValue((int) (double) value.getValue()));
+                        break;
+                    case "price":
+                    case "stopPrice":
+                    case "totalOrderValue":
+                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
+                        if (bdValue.scale() > 4) {
+                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
+                        }
+                        DTransaction.class.getMethod(methodName, BigDecimal.class).invoke(transaction, bdValue);
+                        break;
+
+                    case "isModifiable":
+                    case "isDeletable":
+                        Boolean booleanValue = (Boolean) value.getValue();
+                        DTransaction.class.getMethod(methodName, boolean.class).invoke(transaction, booleanValue);
+                        break;
+
+                }
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                DLog.MANAGER.error("Error while setting value of order", e);
+            }
+
+        }
+        return transaction;
+    }
+    
 }

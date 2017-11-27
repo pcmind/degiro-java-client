@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
 import java.util.Properties;
 
 /**
@@ -48,10 +49,13 @@ public class Main {
         DManager degiro = new DManager(creds);
 
 //        degiro.getOrders();
-        
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getOrders()));
+        Calendar c = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c.add(Calendar.MONTH, -1);
+//        degiro.getTransactions(c, c2);
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
     }
 
 }
