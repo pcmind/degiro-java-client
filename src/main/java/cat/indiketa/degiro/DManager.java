@@ -2,6 +2,7 @@ package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.http.DCommunication;
 import cat.indiketa.degiro.http.DCommunication.DResponse;
+import cat.indiketa.degiro.http.DWebsocket;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
@@ -9,7 +10,9 @@ import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
+import cat.indiketa.degiro.model.DVwdSession;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
@@ -17,7 +20,13 @@ import cat.indiketa.degiro.model.raw.DRawTransactions;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
 
 /**
  *
@@ -29,6 +38,7 @@ public class DManager {
     private final DCommunication comm;
     private DConfig config;
     private DClient client;
+    private DVwdSession vwdSession;
 
     private final Gson gson;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
@@ -200,4 +210,133 @@ public class DManager {
 
     }
 
+    private void ensureVwdSession() throws DegiroException {
+
+        if (vwdSession == null) {
+            renewVwdSession();
+
+        }
+
+    }
+
+    private void renewVwdSession() throws DegiroException {
+        ensureLogged();
+        try {
+            List<Header> headers = new ArrayList<>(1);
+            headers.add(new BasicHeader("Origin", config.getTradingUrl()));
+            System.out.println(config.getVwdQuotecastServiceUrl());
+            DResponse response = comm.getUrlData(config.getVwdQuotecastServiceUrl(), "info", null);
+            if (response.getStatus() != 200) {
+                throw new DegiroException("Bad vwd HTTP status " + response.getStatus());
+            } else {
+                System.out.println(response.getText());
+            }
+            DWebsocket ws = new DWebsocket(new URI(config.getVwdQuotecastServiceUrl().replace("https", "wss")));
+
+        } catch (IOException | URISyntaxException e) {
+            throw new DegiroException("IOException while retrieving vwd session", e);
+        }
+    }
+
+    public void getPrice() throws DegiroException {
+        ensureVwdSession();
+    }
+
+    public DProducts getProducts(List<String> productIds) throws DegiroException {
+
+        DProducts products = null;
+
+        ensureLogged();
+        try {
+            List<Header> headers = new ArrayList<>(1);
+//            headers.add(new BasicHeader("Content-Type", "application/json"));
+
+            DResponse response = comm.getUrlData(config.getProductSearchUrl(), "v5/products/info?intAccount=" + client.getIntAccount() + "&sessionId=" + comm.getJSessionId(), productIds, headers);
+            if (response.getStatus() != 200) {
+                throw new DegiroException("Bad product information HTTP status " + response.getStatus());
+            } else {
+                products = gson.fromJson(response.getText(), DProducts.class);
+            }
+
+        } catch (IOException e) {
+            throw new DegiroException("IOException while retrieving product information", e);
+        }
+
+        return products;
+    }
+
+    /*
+ 
+    const requestVwdSession = () => {
+        return fetch(
+            `https://degiro.quotecast.vwdservices.com/CORS/request_session?version=1.0.20170315&userToken=${session.userToken}`,
+            {
+                method: 'POST',
+                headers: {Origin: 'https://trader.degiro.nl'},
+                body: JSON.stringify({referrer: 'https://trader.degiro.nl'}),
+            }
+        ).then(res => res.json());
+    };
+
+
+    const getAskBidPrice = (issueId, timesChecked = 0) =>
+        requestVwdSession().then(vwdSession => {
+            const checkData = res => {
+                timesChecked++;
+                const prices = {};
+
+                //sanity check
+                if (!Array.isArray(res)) {
+                    throw Error('Bad result: ' + JSON.stringify(res));
+                }
+
+                //retry needed?
+                if (res.length == 1 && res[0].m == 'h') {
+                    if (timesChecked <= 3) {
+                        return getAskBidPrice(issueId, timesChecked);
+                    } else {
+                        throw Error('Tried 3 times to get data, but nothing was returned: ' + JSON.stringify(res));
+                    }
+                }
+
+                //process incoming data
+                var keys = [];
+                res.forEach(row => {
+                    if (row.m == 'a_req') {
+                        if (row.v[0].startsWith(issueId)) {
+                            var key = lcFirst(row.v[0].slice(issueId.length + 1));
+                            prices[key] = null;
+                            keys[row.v[1]] = key;
+                        }
+                    } else if (row.m == 'un' || row.m == 'us') {
+                        prices[keys[row.v[0]]] = row.v[1];
+                    }
+                });
+
+                //check if everything is there
+                if (
+                    typeof prices.bidPrice == 'undefined' ||
+                    typeof prices.askPrice == 'undefined' ||
+                    typeof prices.lastPrice == 'undefined' ||
+                    typeof prices.lastTime == 'undefined'
+                ) {
+                    throw Error("Couldn't find all requested info: " + JSON.stringify(res));
+                }
+
+                return prices;
+            };
+
+            return fetch(`https://degiro.quotecast.vwdservices.com/CORS/${vwdSession.sessionId}`, {
+                method: 'POST',
+                headers: {Origin: 'https://trader.degiro.nl'},
+                body: JSON.stringify({
+                    controlData: `req(${issueId}.BidPrice);req(${issueId}.AskPrice);req(${issueId}.LastPrice);req(${issueId}.LastTime);`,
+                }),
+            })
+                .then(() => fetch(`https://degiro.quotecast.vwdservices.com/CORS/${vwdSession.sessionId}`))
+                .then(res => res.json())
+                .then(checkData);
+        });
+
+     */
 }

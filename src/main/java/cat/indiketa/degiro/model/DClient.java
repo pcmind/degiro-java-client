@@ -6,26 +6,26 @@ package cat.indiketa.degiro.model;
  */
 public class DClient {
 
-    public long id;
-    public long intAccount;
-    public String clientRole;
-    public String username;
-    public String displayName;
-    public String email;
-    public FirstContact firstContact;
-    public Address address;
-    public String phoneNumber;
-    public String cellphoneNumber;
-    public String locale;
-    public String language;
-    public String culture;
-    public BankAccount bankAccount;
-    public String memberCode;
-    public boolean isAllocationAvailable;
-    public boolean isIskClient;
-    public boolean isWithdrawalAvailable;
-    public boolean isCollectivePortfolio;
-    public boolean isAmClientActive;
+    private long id;
+    private long intAccount;
+    private String clientRole;
+    private String username;
+    private String displayName;
+    private String email;
+    private FirstContact firstContact;
+    private Address address;
+    private String phoneNumber;
+    private String cellphoneNumber;
+    private String locale;
+    private String language;
+    private String culture;
+    private BankAccount bankAccount;
+    private String memberCode;
+    private boolean isAllocationAvailable;
+    private boolean isIskClient;
+    private boolean isWithdrawalAvailable;
+    private boolean isCollectivePortfolio;
+    private boolean isAmClientActive;
 
     public long getId() {
         return id;

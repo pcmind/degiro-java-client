@@ -1,12 +1,12 @@
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.log.DLog;
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Calendar;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -51,11 +51,16 @@ public class Main {
 //        degiro.getOrders();
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
-        Calendar c = Calendar.getInstance();
-        Calendar c2 = Calendar.getInstance();
-        c.add(Calendar.MONTH, -1);
+//        Calendar c = Calendar.getInstance();
+//        Calendar c2 = Calendar.getInstance();
+//        c.add(Calendar.MONTH, -1);
 //        degiro.getTransactions(c, c2);
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
+//        degiro.getPricce();
+        List<String> productIds = new ArrayList<>();
+        productIds.add("1482366"); //dia
+
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
     }
 
 }

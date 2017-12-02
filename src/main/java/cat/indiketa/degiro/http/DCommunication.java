@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -34,6 +35,10 @@ public class DCommunication extends DHttpManager {
     }
 
     public DResponse getUrlData(String base, String uri, Object data) throws UnsupportedEncodingException, IOException {
+        return getUrlData(base, uri, data, null);
+    }
+
+    public DResponse getUrlData(String base, String uri, Object data, List<Header> headers) throws UnsupportedEncodingException, IOException {
 
         long callId = ++call;
         String url = base + uri;
@@ -48,6 +53,12 @@ public class DCommunication extends DHttpManager {
             request = post;
         } else {
             request = new HttpGet(url);
+        }
+        
+        if (headers != null) {
+            for (Header header : headers) {
+                request.addHeader(header);
+            }
         }
 
         DResponse dResponse;
