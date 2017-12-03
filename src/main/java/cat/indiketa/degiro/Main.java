@@ -18,13 +18,13 @@ public class Main {
     public static void main(String[] args) throws Exception {
         DCredentials creds = new DCredentials() {
 
-            Properties props = null;
+            private Properties props = null;
 
             private synchronized void checkProps() {
                 if (props == null) {
                     props = new Properties();
                     try {
-                        try (InputStream is = new FileInputStream("/home/casa/dg.properties")) {
+                        try (InputStream is = new FileInputStream("C:\\Users\\eduar\\Documents\\dg.properties")) {
                             props.load(is);
                         }
                     } catch (IOException e) {
@@ -46,7 +46,7 @@ public class Main {
             }
         };
 
-        DManager degiro = new DManager(creds);
+        DManager degiro = new DManager(creds, new DPersistentSession("C:\\Users\\eduar\\Documents\\session.txt"));
 
 //        degiro.getOrders();
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));

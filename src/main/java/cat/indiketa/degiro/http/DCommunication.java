@@ -1,8 +1,7 @@
 package cat.indiketa.degiro.http;
 
+import cat.indiketa.degiro.DSession;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DClient;
-import cat.indiketa.degiro.model.DConfig;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
@@ -15,7 +14,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.protocol.BasicHttpContext;
 
@@ -29,7 +27,8 @@ public class DCommunication extends DHttpManager {
     private final BasicHttpContext context;
     private static long call;
 
-    public DCommunication() {
+    public DCommunication(DSession session) {
+        super(session);
         this.gson = new Gson();
         this.context = new BasicHttpContext();
     }
@@ -54,7 +53,7 @@ public class DCommunication extends DHttpManager {
         } else {
             request = new HttpGet(url);
         }
-        
+
         if (headers != null) {
             for (Header header : headers) {
                 request.addHeader(header);
@@ -74,12 +73,12 @@ public class DCommunication extends DHttpManager {
 
     }
 
-    public DResponse getData(DClient client, DConfig config, String params, Object data) throws IOException {
+    public DResponse getData(DSession session, String params, Object data) throws IOException {
 
         long callId = ++call;
 
 //         `${urls.tradingUrl}v5/update/${session.account};jsessionid=${session.id}?${params}`
-        String url = config.getTradingUrl() + "v5/update/" + client.getIntAccount() + ";jsessionid=" + getJSessionId() + "?" + params;
+        String url = session.getConfig().getTradingUrl() + "v5/update/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId() + "?" + params;
         DLog.WIRE.trace(String.format("[%d] Call %s", callId, url));
         HttpUriRequest request = null;
 
@@ -127,22 +126,6 @@ public class DCommunication extends DHttpManager {
             this.text = text;
         }
 
-    }
-
-    public String getJSessionId() {
-        String value = null;
-        List<Cookie> cookies = cookieStore.getCookies();
-
-        int i = 0;
-        while (i < cookies.size() && !cookies.get(i).getName().equalsIgnoreCase("JSESSIONID")) {
-            i++;
-        }
-
-        if (i < cookies.size()) {
-            value = cookies.get(i).getValue();
-        }
-
-        return value;
     }
 
 }

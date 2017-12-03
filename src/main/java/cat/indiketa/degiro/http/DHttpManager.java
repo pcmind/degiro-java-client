@@ -1,5 +1,6 @@
 package cat.indiketa.degiro.http;
 
+import cat.indiketa.degiro.DSession;
 import cat.indiketa.degiro.log.DLog;
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -39,6 +40,8 @@ public class DHttpManager {
 
     protected final CloseableHttpClient httpClient;
     protected final CookieStore cookieStore;
+    protected final DSession session;
+
     private static DInactiveConnectionManager inactiveConnections = null;
     private static final int DEFAULT_KEEP_ALIVE_TIMEOUT = 90;
     private static final int CONNECTION_SYN_TIMEOUT_SECONDS = 10;
@@ -46,7 +49,9 @@ public class DHttpManager {
     private static final int MAX_CONNECTIONS_PER_ROUTE = 20;
     private static final int TOTAL_MAX_CONNECTIONS = MAX_CONNECTIONS_PER_ROUTE * 27;
 
-    protected DHttpManager() {
+    protected DHttpManager(DSession session) {
+
+        this.session = session;
 
         SSLConnectionSocketFactory sslSocketFactory = null;
         try {
@@ -103,7 +108,7 @@ public class DHttpManager {
                 .setTcpNoDelay(true)
                 .build();
 
-        cookieStore = new BasicCookieStore();
+        cookieStore = new DCookieStore(session);
 
         httpClient = HttpClients.custom()
                 .setConnectionManager(cm)

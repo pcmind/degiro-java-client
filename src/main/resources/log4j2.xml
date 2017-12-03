@@ -12,6 +12,9 @@
     
     </Appenders>
     <Loggers>
+        
+        <Logger name="org.apache.http" level="warn" />
+        
         <Root level="trace">
             <AppenderRef ref="ConsoleAsync"/>
         </Root>

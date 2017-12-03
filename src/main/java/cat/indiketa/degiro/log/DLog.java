@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
  */
 public enum DLog {
 
+    SESSION,
     MANAGER,
     WIRE;
 

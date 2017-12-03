@@ -12,7 +12,6 @@ import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
-import cat.indiketa.degiro.model.DVwdSession;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
@@ -36,16 +35,18 @@ public class DManager {
 
     private final DCredentials credentials;
     private final DCommunication comm;
-    private DConfig config;
-    private DClient client;
-    private DVwdSession vwdSession;
-
+    private final DSession session;
     private final Gson gson;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
 
-    public DManager(DCredentials credencials) {
-        this.credentials = credencials;
-        this.comm = new DCommunication();
+    public DManager(DCredentials credentials) {
+        this(credentials, new DSession());
+    }
+
+    public DManager(DCredentials credentials, DSession session) {
+        this.session = session;
+        this.credentials = credentials;
+        this.comm = new DCommunication(this.session);
         this.gson = new Gson();
 
     }
@@ -57,7 +58,7 @@ public class DManager {
 
         try {
 
-            DResponse response = comm.getData(client, config, "portfolio=0", null);
+            DResponse response = comm.getData(session, "portfolio=0", null);
 
             if (response.getStatus() != 200 && response.getStatus() != 201) {
                 throw new DegiroException("Bad portfolio HTTP status " + response.getStatus());
@@ -79,13 +80,11 @@ public class DManager {
 
         try {
 
-            DResponse response = comm.getData(client, config, "cashFunds=0", null);
+            DResponse response = comm.getData(session, "cashFunds=0", null);
 
             if (response.getStatus() != 200 && response.getStatus() != 201) {
                 throw new DegiroException("Bad cash funds HTTP status " + response.getStatus());
             }
-
-            System.out.println(response.getText());
 
             DRawCashFunds rawCashFunds = gson.fromJson(response.getText(), DRawCashFunds.class);
             cashFunds = DUtils.convert(rawCashFunds);
@@ -103,7 +102,7 @@ public class DManager {
 
         try {
 
-            DResponse response = comm.getData(client, config, "orders=0", null);
+            DResponse response = comm.getData(session, "orders=0", null);
 
             if (response.getStatus() != 200 && response.getStatus() != 201) {
                 throw new DegiroException("Bad orders HTTP status " + response.getStatus());
@@ -125,7 +124,7 @@ public class DManager {
 
         try {
 
-            DResponse response = comm.getData(client, config, "transactions=0", null);
+            DResponse response = comm.getData(session, "transactions=0", null);
 
             if (response.getStatus() != 200 && response.getStatus() != 201) {
                 throw new DegiroException("Bad transactions HTTP status " + response.getStatus());
@@ -149,7 +148,7 @@ public class DManager {
             String fromStr = from.get(Calendar.DATE) + "%2F" + (from.get(Calendar.MONTH) + 1) + "%2F" + from.get(Calendar.YEAR);
             String toStr = to.get(Calendar.DATE) + "%2F" + (to.get(Calendar.MONTH) + 1) + "%2F" + to.get(Calendar.YEAR);
 
-            DResponse response = comm.getUrlData(config.getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + client.getIntAccount() + "&sessionId=" + comm.getJSessionId(), null);
+            DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
 
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad getTransactions HTTP status " + response.getStatus());
@@ -165,7 +164,7 @@ public class DManager {
     }
 
     private void ensureLogged() throws DegiroException {
-        if (Strings.isNullOrEmpty(comm.getJSessionId())) {
+        if (Strings.isNullOrEmpty(session.getJSessionId())) {
             login();
         }
     }
@@ -192,16 +191,15 @@ public class DManager {
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad config HTTP status " + response.getStatus());
             } else {
-                System.err.println(response.getText());
-                config = gson.fromJson(response.getText(), DConfig.class);
+                session.setConfig(gson.fromJson(response.getText(), DConfig.class));
             }
 
-            response = comm.getUrlData(config.getPaUrl(), "client?sessionId=" + comm.getJSessionId(), null);
+            response = comm.getUrlData(session.getConfig().getPaUrl(), "client?sessionId=" + session.getJSessionId(), null);
 
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad client info HTTP status " + response.getStatus());
             } else {
-                client = gson.fromJson(response.getText(), DClient.class);
+                session.setClient(gson.fromJson(response.getText(), DClient.class));
             }
 
         } catch (IOException e) {
@@ -212,7 +210,7 @@ public class DManager {
 
     private void ensureVwdSession() throws DegiroException {
 
-        if (vwdSession == null) {
+        if (session.getVwdSession() == null) {
             renewVwdSession();
 
         }
@@ -223,15 +221,15 @@ public class DManager {
         ensureLogged();
         try {
             List<Header> headers = new ArrayList<>(1);
-            headers.add(new BasicHeader("Origin", config.getTradingUrl()));
-            System.out.println(config.getVwdQuotecastServiceUrl());
-            DResponse response = comm.getUrlData(config.getVwdQuotecastServiceUrl(), "info", null);
+            headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
+            System.out.println(session.getConfig().getVwdQuotecastServiceUrl());
+            DResponse response = comm.getUrlData(session.getConfig().getVwdQuotecastServiceUrl(), "info", null);
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad vwd HTTP status " + response.getStatus());
             } else {
                 System.out.println(response.getText());
             }
-            DWebsocket ws = new DWebsocket(new URI(config.getVwdQuotecastServiceUrl().replace("https", "wss")));
+            DWebsocket ws = new DWebsocket(new URI(session.getConfig().getVwdQuotecastServiceUrl().replace("https", "wss")));
 
         } catch (IOException | URISyntaxException e) {
             throw new DegiroException("IOException while retrieving vwd session", e);
@@ -249,9 +247,7 @@ public class DManager {
         ensureLogged();
         try {
             List<Header> headers = new ArrayList<>(1);
-//            headers.add(new BasicHeader("Content-Type", "application/json"));
-
-            DResponse response = comm.getUrlData(config.getProductSearchUrl(), "v5/products/info?intAccount=" + client.getIntAccount() + "&sessionId=" + comm.getJSessionId(), productIds, headers);
+            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIds, headers);
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad product information HTTP status " + response.getStatus());
             } else {
