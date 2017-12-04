@@ -2,7 +2,6 @@ package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
-import cat.indiketa.degiro.model.DVwdSession;
 import com.google.gson.annotations.Expose;
 import java.util.List;
 import org.apache.http.impl.cookie.BasicClientCookie;
@@ -18,7 +17,7 @@ public class DSession {
     @Expose
     protected DClient client;
     @Expose
-    protected DVwdSession vwdSession;
+    protected String vwdSession;
     @Expose
     protected List<BasicClientCookie> cookies;
 
@@ -30,7 +29,7 @@ public class DSession {
         return client;
     }
 
-    public DVwdSession getVwdSession() {
+    public String getVwdSession() {
         return vwdSession;
     }
 
@@ -63,7 +62,7 @@ public class DSession {
         this.client = client;
     }
 
-    public void setVwdSession(DVwdSession vwdSession) {
+    public void setVwdSession(String vwdSession) {
         this.vwdSession = vwdSession;
     }
 

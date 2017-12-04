@@ -2,7 +2,7 @@ package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.http.DCommunication;
 import cat.indiketa.degiro.http.DCommunication.DResponse;
-import cat.indiketa.degiro.http.DWebsocket;
+import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
@@ -10,20 +10,24 @@ import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 
@@ -37,6 +41,9 @@ public class DManager {
     private final DCommunication comm;
     private final DSession session;
     private final Gson gson;
+    private DPriceListener priceListener;
+    private long pollingIntervalMillis = TimeUnit.SECONDS.toMillis(15);
+    private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
 
     public DManager(DCredentials credentials) {
@@ -209,35 +216,87 @@ public class DManager {
     }
 
     private void ensureVwdSession() throws DegiroException {
-
+        ensureLogged();
         if (session.getVwdSession() == null) {
-            renewVwdSession();
-
+            getVwdSession();
         }
-
     }
 
-    private void renewVwdSession() throws DegiroException {
-        ensureLogged();
+    private void getVwdSession() throws DegiroException {
+
         try {
             List<Header> headers = new ArrayList<>(1);
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
-            System.out.println(session.getConfig().getVwdQuotecastServiceUrl());
-            DResponse response = comm.getUrlData(session.getConfig().getVwdQuotecastServiceUrl(), "info", null);
+            HashMap<String, String> data = new HashMap();
+            data.put("referrer", "https://trader.degiro.nl");
+            DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/request_session?version=1.0.20170315&userToken=" + session.getClient().getId(), data, headers);
             if (response.getStatus() != 200) {
-                throw new DegiroException("Bad vwd HTTP status " + response.getStatus());
+                throw new DegiroException("Bad vwd get session HTTP status " + response.getStatus());
             } else {
-                System.out.println(response.getText());
+                HashMap map = gson.fromJson(response.getText(), HashMap.class);
+                session.setVwdSession((String) map.get("sessionId"));
             }
-            DWebsocket ws = new DWebsocket(new URI(session.getConfig().getVwdQuotecastServiceUrl().replace("https", "wss")));
 
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException e) {
             throw new DegiroException("IOException while retrieving vwd session", e);
         }
     }
 
-    public void getPrice() throws DegiroException {
+    public void setPricePollingInterval(int duration, TimeUnit unit) throws DegiroException {
+        if (pricePoller != null) {
+            throw new DegiroException("Price polling interval must be set before adding price watches");
+        }
+        pollingIntervalMillis = unit.toMillis(duration);
+    }
+
+    public void setPriceListener(DPriceListener priceListener) {
+        this.priceListener = priceListener;
+    }
+
+    public synchronized void subscribeToPrice(List<Long> vwdIssueId) throws DegiroException {
         ensureVwdSession();
+
+        if (priceListener == null) {
+            throw new DegiroException("PriceListener not set");
+        }
+
+        try {
+            List<Header> headers = new ArrayList<>(1);
+            headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
+
+            String requestedIssues = "";
+            for (Long issueId : vwdIssueId) {
+                requestedIssues += "req(XXX.BidPrice);req(XXX.AskPrice);req(XXX.LastPrice);req(XXX.LastTime);".replace("XXX", issueId + "");
+            }
+            HashMap<String, String> data = new HashMap();
+            data.put("controlData", requestedIssues);
+
+            DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), data, headers);
+            if (response.getStatus() != 200) {
+                throw new DegiroException("Bad http status " + response.getStatus() + ", inserting watch for issues " + Joiner.on(", ").join(vwdIssueId));
+            } else {
+                DLog.MANAGER.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIssueId));
+            }
+
+        } catch (IOException e) {
+            throw new DegiroException("IOException while subscribing to issues", e);
+        }
+
+        if (pricePoller == null) {
+            pricePoller = new Timer("PRICE-POLLER", true);
+            pricePoller.scheduleAtFixedRate(new DPriceTimerTask(), 0, pollingIntervalMillis);
+        }
+
+    }
+
+    private void checkPriceChanges() {
+
+    }
+
+    public synchronized void clearPriceWatchs() {
+        session.setVwdSession(null);
+        pricePoller.cancel();
+        pricePoller = null;
     }
 
     public DProducts getProducts(List<String> productIds) throws DegiroException {
@@ -250,8 +309,10 @@ public class DManager {
             DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIds, headers);
             if (response.getStatus() != 200) {
                 throw new DegiroException("Bad product information HTTP status " + response.getStatus());
+
             } else {
-                products = gson.fromJson(response.getText(), DProducts.class);
+                products = gson.fromJson(response.getText(), DProducts.class
+                );
             }
 
         } catch (IOException e) {
@@ -261,18 +322,21 @@ public class DManager {
         return products;
     }
 
-    /*
- 
-    const requestVwdSession = () => {
-        return fetch(
-            `https://degiro.quotecast.vwdservices.com/CORS/request_session?version=1.0.20170315&userToken=${session.userToken}`,
-            {
-                method: 'POST',
-                headers: {Origin: 'https://trader.degiro.nl'},
-                body: JSON.stringify({referrer: 'https://trader.degiro.nl'}),
+    private class DPriceTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+            try {
+                DManager.this.checkPriceChanges();
+            } catch (Exception e) {
+                DLog.MANAGER.error("Exception while updating prices", e);
             }
-        ).then(res => res.json());
-    };
+        }
+
+    }
+
+
+    /*
 
 
     const getAskBidPrice = (issueId, timesChecked = 0) =>

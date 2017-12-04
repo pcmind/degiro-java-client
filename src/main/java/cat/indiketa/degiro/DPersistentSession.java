@@ -1,14 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
-import cat.indiketa.degiro.model.DVwdSession;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -83,7 +77,7 @@ public class DPersistentSession extends DSession {
     }
 
     @Override
-    public void setVwdSession(DVwdSession vwdSession) {
+    public void setVwdSession(String vwdSession) {
         super.setVwdSession(vwdSession);
         saveSession();
     }

@@ -1,6 +1,8 @@
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.log.DLog;
+import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DPriceListener;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -24,7 +26,7 @@ public class Main {
                 if (props == null) {
                     props = new Properties();
                     try {
-                        try (InputStream is = new FileInputStream("C:\\Users\\eduar\\Documents\\dg.properties")) {
+                        try (InputStream is = new FileInputStream("/home/casa/dg.properties")) {
                             props.load(is);
                         }
                     } catch (IOException e) {
@@ -46,7 +48,8 @@ public class Main {
             }
         };
 
-        DManager degiro = new DManager(creds, new DPersistentSession("C:\\Users\\eduar\\Documents\\session.txt"));
+//        DManager degiro = new DManager(creds, new DPersistentSession("/home/casa/session.txt"));
+        DManager degiro = new DManager(creds);
 
 //        degiro.getOrders();
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
@@ -57,10 +60,20 @@ public class Main {
 //        degiro.getTransactions(c, c2);
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
 //        degiro.getPricce();
-        List<String> productIds = new ArrayList<>();
-        productIds.add("1482366"); //dia
+//        List<String> productIds = new ArrayList<>();
+//        productIds.add("1482366"); //dia
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
+        degiro.setPriceListener(new DPriceListener() {
+            @Override
+            public void priceChanged(DPrice price) {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        });
+        
+        List<Long> vwdIssueIds = new ArrayList<>();
+        vwdIssueIds.add(280099308L); //dia
+        degiro.subscribeToPrice(vwdIssueIds);
 
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
     }
 
 }
