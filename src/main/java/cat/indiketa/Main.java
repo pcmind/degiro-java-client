@@ -1,5 +1,9 @@
-package cat.indiketa.degiro;
+package cat.indiketa;
 
+import cat.indiketa.degiro.DeGiro;
+import cat.indiketa.degiro.DeGiroFactory;
+import cat.indiketa.degiro.utils.DCredentials;
+import cat.indiketa.degiro.session.DPersistentSession;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
@@ -48,7 +52,8 @@ public class Main {
             }
         };
 
-        DManager degiro = new DManager(creds, new DPersistentSession("/home/casa/session.txt"));
+        
+        DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
 //        DManager degiro = new DManager(creds);
 
 //        degiro.getOrders();
@@ -63,12 +68,8 @@ public class Main {
         List<String> productIds = new ArrayList<>();
         productIds.add("1482366"); //dia
 
-        try {
-            System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
-        } catch (DUnauthorizedException e) {
-            System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
 
-        }
         degiro.setPriceListener(new DPriceListener() {
             @Override
             public void priceChanged(DPrice price) {

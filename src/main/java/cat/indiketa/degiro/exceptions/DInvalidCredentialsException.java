@@ -1,4 +1,4 @@
-package cat.indiketa.degiro;
+package cat.indiketa.degiro.exceptions;
 
 /**
  *

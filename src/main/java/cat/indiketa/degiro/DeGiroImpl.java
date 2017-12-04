@@ -1,5 +1,12 @@
 package cat.indiketa.degiro;
 
+import cat.indiketa.degiro.utils.DUtils;
+import cat.indiketa.degiro.utils.DCredentials;
+import cat.indiketa.degiro.session.DSessionExpiredRetryProxy;
+import cat.indiketa.degiro.session.DSession;
+import cat.indiketa.degiro.exceptions.DUnauthorizedException;
+import cat.indiketa.degiro.exceptions.DeGiroException;
+import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
 import cat.indiketa.degiro.http.DCommunication;
 import cat.indiketa.degiro.http.DCommunication.DResponse;
 import cat.indiketa.degiro.log.DLog;
@@ -38,23 +45,21 @@ import org.apache.http.message.BasicHeader;
  *
  * @author indiketa
  */
-public class DManager {
+public class DeGiroImpl implements DeGiro {
 
     private final DCredentials credentials;
     private final DCommunication comm;
     private final DSession session;
     private final Gson gson;
     private DPriceListener priceListener;
-    private long pollingIntervalMillis = TimeUnit.SECONDS.toMillis(15);
+    private long pollingInterval = TimeUnit.SECONDS.toMillis(15);
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
-    private Set<Long> subscribedVwdIssues;
+    private final Set<Long> subscribedVwdIssues;
 
-    public DManager(DCredentials credentials) {
-        this(credentials, new DSession());
-    }
 
-    public DManager(DCredentials credentials, DSession session) {
+
+    protected DeGiroImpl(DCredentials credentials, DSession session) {
         this.session = session;
         this.credentials = credentials;
         this.comm = new DCommunication(this.session);
@@ -63,7 +68,8 @@ public class DManager {
 
     }
 
-    public DPortfolio getPortfolio() throws DegiroException {
+    @Override
+    public DPortfolio getPortfolio() throws DeGiroException {
 
         DPortfolio portfolio = null;
         ensureLogged();
@@ -73,12 +79,13 @@ public class DManager {
             DRawPortfolio rawPortfolio = gson.fromJson(getResponseData(response), DRawPortfolio.class);
             portfolio = DUtils.convert(rawPortfolio);
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving portfolio", e);
+            throw new DeGiroException("IOException while retrieving portfolio", e);
         }
         return portfolio;
     }
 
-    public DCashFunds getCashFunds() throws DegiroException {
+    @Override
+    public DCashFunds getCashFunds() throws DeGiroException {
 
         DCashFunds cashFunds = null;
         ensureLogged();
@@ -88,12 +95,13 @@ public class DManager {
             DRawCashFunds rawCashFunds = gson.fromJson(getResponseData(response), DRawCashFunds.class);
             cashFunds = DUtils.convert(rawCashFunds);
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving cash funds", e);
+            throw new DeGiroException("IOException while retrieving cash funds", e);
         }
         return cashFunds;
     }
 
-    public DOrders getOrders() throws DegiroException {
+    @Override
+    public DOrders getOrders() throws DeGiroException {
 
         DOrders orders = null;
         ensureLogged();
@@ -103,12 +111,13 @@ public class DManager {
             DRawOrders rawOrders = gson.fromJson(getResponseData(response), DRawOrders.class);
             orders = DUtils.convert(rawOrders);
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving orders", e);
+            throw new DeGiroException("IOException while retrieving orders", e);
         }
         return orders;
     }
 
-    public DLastTransactions getLastTransactions() throws DegiroException {
+    @Override
+    public DLastTransactions getLastTransactions() throws DeGiroException {
 
         DLastTransactions transactions = null;
         ensureLogged();
@@ -118,12 +127,13 @@ public class DManager {
             DRawTransactions rawTransactions = gson.fromJson(getResponseData(response), DRawTransactions.class);
             transactions = DUtils.convert(rawTransactions);
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving transactions", e);
+            throw new DeGiroException("IOException while retrieving transactions", e);
         }
         return transactions;
     }
 
-    public DTransactions getTransactions(Calendar from, Calendar to) throws DegiroException {
+    @Override
+    public DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException {
 
         DTransactions transactions = null;
         ensureLogged();
@@ -135,19 +145,19 @@ public class DManager {
             DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
             transactions = gson.fromJson(getResponseData(response), DTransactions.class);
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving transactions", e);
+            throw new DeGiroException("IOException while retrieving transactions", e);
         }
         return transactions;
 
     }
 
-    private void ensureLogged() throws DegiroException {
+    private void ensureLogged() throws DeGiroException {
         if (Strings.isNullOrEmpty(session.getJSessionId())) {
             login();
         }
     }
 
-    private void login() throws DegiroException {
+    private void login() throws DeGiroException {
 
         try {
             DLogin login = new DLogin();
@@ -160,7 +170,7 @@ public class DManager {
                 if (response.getStatus() == 400) {
                     throw new DInvalidCredentialsException();
                 } else {
-                    throw new DegiroException("Bad login HTTP status " + response.getStatus());
+                    throw new DeGiroException("Bad login HTTP status " + response.getStatus());
                 }
             }
 
@@ -171,12 +181,12 @@ public class DManager {
             session.setClient(gson.fromJson(getResponseData(response), DClient.class));
 
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving user information", e);
+            throw new DeGiroException("IOException while retrieving user information", e);
         }
 
     }
 
-    private void ensureVwdSession() throws DegiroException {
+    private void ensureVwdSession() throws DeGiroException {
         ensureLogged();
         if (session.getVwdSession() == null) {
             getVwdSession();
@@ -187,7 +197,7 @@ public class DManager {
         }
     }
 
-    private void getVwdSession() throws DegiroException {
+    private void getVwdSession() throws DeGiroException {
 
         try {
             List<Header> headers = new ArrayList<>(1);
@@ -198,26 +208,29 @@ public class DManager {
             HashMap map = gson.fromJson(getResponseData(response), HashMap.class);
             session.setVwdSession((String) map.get("sessionId"));
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving vwd session", e);
+            throw new DeGiroException("IOException while retrieving vwd session", e);
         }
     }
 
-    public void setPricePollingInterval(int duration, TimeUnit unit) throws DegiroException {
+    @Override
+    public void setPricePollingInterval(int duration, TimeUnit unit) throws DeGiroException {
         if (pricePoller != null) {
-            throw new DegiroException("Price polling interval must be set before adding price watches");
+            throw new DeGiroException("Price polling interval must be set before adding price watches");
         }
-        pollingIntervalMillis = unit.toMillis(duration);
+        pollingInterval = unit.toMillis(duration);
     }
 
+    @Override
     public void setPriceListener(DPriceListener priceListener) {
         this.priceListener = priceListener;
     }
 
-    public synchronized void subscribeToPrice(Collection<Long> vwdIssueId) throws DegiroException {
+    @Override
+    public synchronized void subscribeToPrice(Collection<Long> vwdIssueId) throws DeGiroException {
         ensureVwdSession();
 
         if (priceListener == null) {
-            throw new DegiroException("PriceListener not set");
+            throw new DeGiroException("PriceListener not set");
         }
 
         try {
@@ -238,18 +251,18 @@ public class DManager {
 
             DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), data, headers);
             if (response.getStatus() != 200) {
-                throw new DegiroException("Bad http status " + response.getStatus() + ", inserting watch for issues " + Joiner.on(", ").join(vwdIssueId));
+                throw new DeGiroException("Bad http status " + response.getStatus() + ", inserting watch for issues " + Joiner.on(", ").join(vwdIssueId));
             } else {
                 DLog.MANAGER.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIssueId));
             }
 
         } catch (IOException e) {
-            throw new DegiroException("IOException while subscribing to issues", e);
+            throw new DeGiroException("IOException while subscribing to issues", e);
         }
 
         if (pricePoller == null) {
             pricePoller = new Timer("PRICE-POLLER", true);
-            pricePoller.scheduleAtFixedRate(new DPriceTimerTask(), 0, pollingIntervalMillis);
+            pricePoller.scheduleAtFixedRate(new DPriceTimerTask(), 0, pollingInterval);
         }
 
     }
@@ -258,13 +271,16 @@ public class DManager {
 
     }
 
+    @Override
     public synchronized void clearPriceWatchs() {
         session.setVwdSession(null);
+        subscribedVwdIssues.clear();
         pricePoller.cancel();
         pricePoller = null;
     }
 
-    public DProducts getProducts(List<String> productIds) throws DegiroException {
+    @Override
+    public DProducts getProducts(List<String> productIds) throws DeGiroException {
 
         DProducts products = null;
 
@@ -275,13 +291,13 @@ public class DManager {
             products = gson.fromJson(getResponseData(response), DProducts.class);
 
         } catch (IOException e) {
-            throw new DegiroException("IOException while retrieving product information", e);
+            throw new DeGiroException("IOException while retrieving product information", e);
         }
 
         return products;
     }
 
-    private String getResponseData(DResponse response) throws DegiroException {
+    private String getResponseData(DResponse response) throws DeGiroException {
 
         DLog.WIRE.info(response.getMethod() + " " + response.getUrl() + " >> HTTP " + response.getStatus());
         String data = null;
@@ -295,11 +311,15 @@ public class DManager {
         if (response.getStatus() == 200 || response.getStatus() == 201) {
             data = response.getText();
         } else {
-            throw new DegiroException("Unexpected HTTP Status " + response.getStatus() + ": " + response.getMethod() + " " + response.getUrl());
+            throw new DeGiroException("Unexpected HTTP Status " + response.getStatus() + ": " + response.getMethod() + " " + response.getUrl());
         }
 
         return data;
 
+    }
+
+    public DSession getSession() {
+        return session;
     }
 
     private class DPriceTimerTask extends TimerTask {
@@ -307,7 +327,7 @@ public class DManager {
         @Override
         public void run() {
             try {
-                DManager.this.checkPriceChanges();
+                DeGiroImpl.this.checkPriceChanges();
             } catch (Exception e) {
                 DLog.MANAGER.error("Exception while updating prices", e);
             }

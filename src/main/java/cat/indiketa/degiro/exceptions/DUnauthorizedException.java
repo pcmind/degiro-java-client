@@ -4,13 +4,15 @@
  * and open the template in the editor.
  */
 
-package cat.indiketa.degiro;
+package cat.indiketa.degiro.exceptions;
+
+import cat.indiketa.degiro.exceptions.DeGiroException;
 
 /**
  *
  * @author indiketa
  */
-public class DUnauthorizedException extends DegiroException {
+public class DUnauthorizedException extends DeGiroException {
 
     public DUnauthorizedException() {
     }

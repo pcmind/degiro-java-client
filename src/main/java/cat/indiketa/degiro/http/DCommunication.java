@@ -1,6 +1,6 @@
 package cat.indiketa.degiro.http;
 
-import cat.indiketa.degiro.DSession;
+import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.log.DLog;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.concurrent.Callable;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;

@@ -1,4 +1,4 @@
-package cat.indiketa.degiro;
+package cat.indiketa.degiro.session;
 
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;

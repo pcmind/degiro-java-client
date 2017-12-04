@@ -1,6 +1,6 @@
 package cat.indiketa.degiro.http;
 
-import cat.indiketa.degiro.DSession;
+import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.log.DLog;
 import java.io.IOException;
 import java.security.KeyManagementException;

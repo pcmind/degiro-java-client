@@ -1,6 +1,6 @@
 package cat.indiketa.degiro.http;
 
-import cat.indiketa.degiro.DSession;
+import cat.indiketa.degiro.session.DSession;
 import java.util.List;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
