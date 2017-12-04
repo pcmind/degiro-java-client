@@ -23,8 +23,11 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +48,7 @@ public class DManager {
     private long pollingIntervalMillis = TimeUnit.SECONDS.toMillis(15);
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
+    private Set<Long> subscribedVwdIssues;
 
     public DManager(DCredentials credentials) {
         this(credentials, new DSession());
@@ -55,6 +59,7 @@ public class DManager {
         this.credentials = credentials;
         this.comm = new DCommunication(this.session);
         this.gson = new Gson();
+        this.subscribedVwdIssues = new HashSet<>(500);
 
     }
 
@@ -64,16 +69,9 @@ public class DManager {
         ensureLogged();
 
         try {
-
             DResponse response = comm.getData(session, "portfolio=0", null);
-
-            if (response.getStatus() != 200 && response.getStatus() != 201) {
-                throw new DegiroException("Bad portfolio HTTP status " + response.getStatus());
-            }
-
-            DRawPortfolio rawPortfolio = gson.fromJson(response.getText(), DRawPortfolio.class);
+            DRawPortfolio rawPortfolio = gson.fromJson(getResponseData(response), DRawPortfolio.class);
             portfolio = DUtils.convert(rawPortfolio);
-
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving portfolio", e);
         }
@@ -86,16 +84,9 @@ public class DManager {
         ensureLogged();
 
         try {
-
             DResponse response = comm.getData(session, "cashFunds=0", null);
-
-            if (response.getStatus() != 200 && response.getStatus() != 201) {
-                throw new DegiroException("Bad cash funds HTTP status " + response.getStatus());
-            }
-
-            DRawCashFunds rawCashFunds = gson.fromJson(response.getText(), DRawCashFunds.class);
+            DRawCashFunds rawCashFunds = gson.fromJson(getResponseData(response), DRawCashFunds.class);
             cashFunds = DUtils.convert(rawCashFunds);
-
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving cash funds", e);
         }
@@ -108,16 +99,9 @@ public class DManager {
         ensureLogged();
 
         try {
-
             DResponse response = comm.getData(session, "orders=0", null);
-
-            if (response.getStatus() != 200 && response.getStatus() != 201) {
-                throw new DegiroException("Bad orders HTTP status " + response.getStatus());
-            }
-
-            DRawOrders rawOrders = gson.fromJson(response.getText(), DRawOrders.class);
+            DRawOrders rawOrders = gson.fromJson(getResponseData(response), DRawOrders.class);
             orders = DUtils.convert(rawOrders);
-
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving orders", e);
         }
@@ -130,16 +114,9 @@ public class DManager {
         ensureLogged();
 
         try {
-
             DResponse response = comm.getData(session, "transactions=0", null);
-
-            if (response.getStatus() != 200 && response.getStatus() != 201) {
-                throw new DegiroException("Bad transactions HTTP status " + response.getStatus());
-            }
-
-            DRawTransactions rawTransactions = gson.fromJson(response.getText(), DRawTransactions.class);
+            DRawTransactions rawTransactions = gson.fromJson(getResponseData(response), DRawTransactions.class);
             transactions = DUtils.convert(rawTransactions);
-
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving transactions", e);
         }
@@ -149,23 +126,17 @@ public class DManager {
     public DTransactions getTransactions(Calendar from, Calendar to) throws DegiroException {
 
         DTransactions transactions = null;
-
         ensureLogged();
+
         try {
             String fromStr = from.get(Calendar.DATE) + "%2F" + (from.get(Calendar.MONTH) + 1) + "%2F" + from.get(Calendar.YEAR);
             String toStr = to.get(Calendar.DATE) + "%2F" + (to.get(Calendar.MONTH) + 1) + "%2F" + to.get(Calendar.YEAR);
 
             DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
-
-            if (response.getStatus() != 200) {
-                throw new DegiroException("Bad getTransactions HTTP status " + response.getStatus());
-            } else {
-                transactions = gson.fromJson(response.getText(), DTransactions.class);
-            }
+            transactions = gson.fromJson(getResponseData(response), DTransactions.class);
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving transactions", e);
         }
-
         return transactions;
 
     }
@@ -194,20 +165,10 @@ public class DManager {
             }
 
             response = comm.getUrlData(BASE_TRADER_URL, "/login/secure/config", null);
-
-            if (response.getStatus() != 200) {
-                throw new DegiroException("Bad config HTTP status " + response.getStatus());
-            } else {
-                session.setConfig(gson.fromJson(response.getText(), DConfig.class));
-            }
+            session.setConfig(gson.fromJson(getResponseData(response), DConfig.class));
 
             response = comm.getUrlData(session.getConfig().getPaUrl(), "client?sessionId=" + session.getJSessionId(), null);
-
-            if (response.getStatus() != 200) {
-                throw new DegiroException("Bad client info HTTP status " + response.getStatus());
-            } else {
-                session.setClient(gson.fromJson(response.getText(), DClient.class));
-            }
+            session.setClient(gson.fromJson(getResponseData(response), DClient.class));
 
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving user information", e);
@@ -219,6 +180,10 @@ public class DManager {
         ensureLogged();
         if (session.getVwdSession() == null) {
             getVwdSession();
+            if (!subscribedVwdIssues.isEmpty()) {
+                subscribeToPrice(subscribedVwdIssues);
+            }
+
         }
     }
 
@@ -230,13 +195,8 @@ public class DManager {
             HashMap<String, String> data = new HashMap();
             data.put("referrer", "https://trader.degiro.nl");
             DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/request_session?version=1.0.20170315&userToken=" + session.getClient().getId(), data, headers);
-            if (response.getStatus() != 200) {
-                throw new DegiroException("Bad vwd get session HTTP status " + response.getStatus());
-            } else {
-                HashMap map = gson.fromJson(response.getText(), HashMap.class);
-                session.setVwdSession((String) map.get("sessionId"));
-            }
-
+            HashMap map = gson.fromJson(getResponseData(response), HashMap.class);
+            session.setVwdSession((String) map.get("sessionId"));
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving vwd session", e);
         }
@@ -253,7 +213,7 @@ public class DManager {
         this.priceListener = priceListener;
     }
 
-    public synchronized void subscribeToPrice(List<Long> vwdIssueId) throws DegiroException {
+    public synchronized void subscribeToPrice(Collection<Long> vwdIssueId) throws DegiroException {
         ensureVwdSession();
 
         if (priceListener == null) {
@@ -268,6 +228,11 @@ public class DManager {
             for (Long issueId : vwdIssueId) {
                 requestedIssues += "req(XXX.BidPrice);req(XXX.AskPrice);req(XXX.LastPrice);req(XXX.LastTime);".replace("XXX", issueId + "");
             }
+
+            if (vwdIssueId.hashCode() != subscribedVwdIssues.hashCode()) {
+                subscribedVwdIssues.addAll(vwdIssueId);
+            }
+
             HashMap<String, String> data = new HashMap();
             data.put("controlData", requestedIssues);
 
@@ -307,19 +272,34 @@ public class DManager {
         try {
             List<Header> headers = new ArrayList<>(1);
             DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIds, headers);
-            if (response.getStatus() != 200) {
-                throw new DegiroException("Bad product information HTTP status " + response.getStatus());
-
-            } else {
-                products = gson.fromJson(response.getText(), DProducts.class
-                );
-            }
+            products = gson.fromJson(getResponseData(response), DProducts.class);
 
         } catch (IOException e) {
             throw new DegiroException("IOException while retrieving product information", e);
         }
 
         return products;
+    }
+
+    private String getResponseData(DResponse response) throws DegiroException {
+
+        DLog.WIRE.info(response.getMethod() + " " + response.getUrl() + " >> HTTP " + response.getStatus());
+        String data = null;
+
+        if (response.getStatus() == 401) {
+            DLog.MANAGER.warn("Session expired, clearing session tokens");
+            session.clearSession();
+            throw new DUnauthorizedException();
+        }
+
+        if (response.getStatus() == 200 || response.getStatus() == 201) {
+            data = response.getText();
+        } else {
+            throw new DegiroException("Unexpected HTTP Status " + response.getStatus() + ": " + response.getMethod() + " " + response.getUrl());
+        }
+
+        return data;
+
     }
 
     private class DPriceTimerTask extends TimerTask {

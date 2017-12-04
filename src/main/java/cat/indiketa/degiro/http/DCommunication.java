@@ -66,7 +66,8 @@ public class DCommunication extends DHttpManager {
             dResponse = new DResponse();
             dResponse.setStatus(response.getStatusLine().getStatusCode());
             dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
-
+            dResponse.setMethod(data != null ? "POST" : "GET");
+            dResponse.setUrl(url);
         }
 
         return dResponse;
@@ -108,6 +109,8 @@ public class DCommunication extends DHttpManager {
     public static class DResponse {
 
         private int status;
+        private String url;
+        private String method;
         private String text;
 
         public int getStatus() {
@@ -124,6 +127,22 @@ public class DCommunication extends DHttpManager {
 
         public void setText(String text) {
             this.text = text;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getMethod() {
+            return method;
+        }
+
+        public void setMethod(String method) {
+            this.method = method;
         }
 
     }

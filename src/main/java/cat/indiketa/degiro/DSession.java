@@ -54,6 +54,13 @@ public class DSession {
         return value;
     }
 
+    public void clearSession() {
+        config = null;
+        client = null;
+        vwdSession = null;
+        cookies = null;
+    }
+
     public void setConfig(DConfig config) {
         this.config = config;
     }
