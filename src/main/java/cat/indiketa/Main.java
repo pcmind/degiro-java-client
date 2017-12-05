@@ -52,9 +52,8 @@ public class Main {
             }
         };
 
-        
-        DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
-//        DManager degiro = new DManager(creds);
+//        DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
+        DeGiro degiro = DeGiroFactory.newInstance(creds);
 
 //        degiro.getOrders();
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
@@ -73,13 +72,17 @@ public class Main {
         degiro.setPriceListener(new DPriceListener() {
             @Override
             public void priceChanged(DPrice price) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(price));
             }
         });
 
         List<Long> vwdIssueIds = new ArrayList<>();
         vwdIssueIds.add(280099308L); //dia
         degiro.subscribeToPrice(vwdIssueIds);
+
+        while (true) {
+            Thread.sleep(1000);
+        }
 
     }
 

@@ -2,7 +2,6 @@ package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.utils.DUtils;
 import cat.indiketa.degiro.utils.DCredentials;
-import cat.indiketa.degiro.session.DSessionExpiredRetryProxy;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.exceptions.DUnauthorizedException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
@@ -17,6 +16,7 @@ import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
@@ -24,10 +24,13 @@ import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
+import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -56,8 +59,8 @@ public class DeGiroImpl implements DeGiro {
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
     private final Set<Long> subscribedVwdIssues;
-
-
+    private Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
+    }.getType();
 
     protected DeGiroImpl(DCredentials credentials, DSession session) {
         this.session = session;
@@ -250,11 +253,9 @@ public class DeGiroImpl implements DeGiro {
             data.put("controlData", requestedIssues);
 
             DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), data, headers);
-            if (response.getStatus() != 200) {
-                throw new DeGiroException("Bad http status " + response.getStatus() + ", inserting watch for issues " + Joiner.on(", ").join(vwdIssueId));
-            } else {
-                DLog.MANAGER.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIssueId));
-            }
+            getResponseData(response);
+
+            DLog.MANAGER.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIssueId));
 
         } catch (IOException e) {
             throw new DeGiroException("IOException while subscribing to issues", e);
@@ -267,8 +268,32 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
-    private void checkPriceChanges() {
+    private void checkPriceChanges() throws DeGiroException {
+        ensureVwdSession();
 
+        try {
+            List<Header> headers = new ArrayList<>(1);
+            headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
+
+            DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), null, headers);
+            List<DRawVwdPrice> data = gson.fromJson(getResponseData(response), rawPriceData);
+
+            List<DPrice> prices = DUtils.convert(data);
+            
+            if (priceListener != null) {
+                for (DPrice price : prices) {
+                    priceListener.priceChanged(price);
+                }
+            }
+
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while subscribing to issues", e);
+        }
+
+        if (pricePoller == null) {
+            pricePoller = new Timer("Prices", true);
+            pricePoller.scheduleAtFixedRate(new DPriceTimerTask(), 0, pollingInterval);
+        }
     }
 
     @Override
@@ -335,68 +360,4 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
-
-    /*
-
-
-    const getAskBidPrice = (issueId, timesChecked = 0) =>
-        requestVwdSession().then(vwdSession => {
-            const checkData = res => {
-                timesChecked++;
-                const prices = {};
-
-                //sanity check
-                if (!Array.isArray(res)) {
-                    throw Error('Bad result: ' + JSON.stringify(res));
-                }
-
-                //retry needed?
-                if (res.length == 1 && res[0].m == 'h') {
-                    if (timesChecked <= 3) {
-                        return getAskBidPrice(issueId, timesChecked);
-                    } else {
-                        throw Error('Tried 3 times to get data, but nothing was returned: ' + JSON.stringify(res));
-                    }
-                }
-
-                //process incoming data
-                var keys = [];
-                res.forEach(row => {
-                    if (row.m == 'a_req') {
-                        if (row.v[0].startsWith(issueId)) {
-                            var key = lcFirst(row.v[0].slice(issueId.length + 1));
-                            prices[key] = null;
-                            keys[row.v[1]] = key;
-                        }
-                    } else if (row.m == 'un' || row.m == 'us') {
-                        prices[keys[row.v[0]]] = row.v[1];
-                    }
-                });
-
-                //check if everything is there
-                if (
-                    typeof prices.bidPrice == 'undefined' ||
-                    typeof prices.askPrice == 'undefined' ||
-                    typeof prices.lastPrice == 'undefined' ||
-                    typeof prices.lastTime == 'undefined'
-                ) {
-                    throw Error("Couldn't find all requested info: " + JSON.stringify(res));
-                }
-
-                return prices;
-            };
-
-            return fetch(`https://degiro.quotecast.vwdservices.com/CORS/${vwdSession.sessionId}`, {
-                method: 'POST',
-                headers: {Origin: 'https://trader.degiro.nl'},
-                body: JSON.stringify({
-                    controlData: `req(${issueId}.BidPrice);req(${issueId}.AskPrice);req(${issueId}.LastPrice);req(${issueId}.LastTime);`,
-                }),
-            })
-                .then(() => fetch(`https://degiro.quotecast.vwdservices.com/CORS/${vwdSession.sessionId}`))
-                .then(res => res.json())
-                .then(checkData);
-        });
-
-     */
 }

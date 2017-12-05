@@ -11,26 +11,39 @@ import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DPortfolio.DProductRow;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
+import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value_;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
+import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
+import com.google.common.primitives.Doubles;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  *
  * @author indiketa
  */
 public class DUtils {
+
+    private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
     public static DPortfolio convert(DRawPortfolio rawPortfolio) {
         DPortfolio portfolio = new DPortfolio();
@@ -264,13 +277,12 @@ public class DUtils {
             parsed.set(Calendar.MINUTE, 0);
             parsed.set(Calendar.SECOND, 0);
             parsed.set(Calendar.MILLISECOND, 0);
-            
+
         } else {
         }
         return parsed;
     }
-    
-    
+
     public static DLastTransactions convert(DRawTransactions rawOrders) {
         DLastTransactions transactions = new DLastTransactions();
         List<DTransaction> list = new LinkedList<>();
@@ -350,5 +362,75 @@ public class DUtils {
         }
         return transaction;
     }
-    
+
+    public static List<DPrice> convert(List<DRawVwdPrice> data) {
+
+        Set<Long> issues = new HashSet<>(100);
+        Map<String, String> dataMap = new HashMap<>(data.size());
+
+        if (data != null) {
+            for (DRawVwdPrice dRawVwdPrice : data) {
+
+                if (Strings.nullToEmpty(dRawVwdPrice.getM()).equals("a_req")) {
+                    String firstVal = dRawVwdPrice.getV().get(0);
+                    issues.add(Long.parseLong(firstVal.substring(0, firstVal.indexOf("."))));
+
+                }
+
+                if (dRawVwdPrice.getV() != null && !dRawVwdPrice.getV().isEmpty()) {
+                    String v2 = null;
+
+                    if (dRawVwdPrice.getV().size() > 1) {
+                        v2 = dRawVwdPrice.getV().get(1);
+                    }
+
+                    dataMap.put(dRawVwdPrice.getV().get(0), v2);
+                }
+            }
+        }
+
+        List<DPrice> prices = new ArrayList<>(issues.size());
+
+        for (Long issue : issues) {
+            DPrice price = new DPrice();
+            price.setIssueId(issue);
+            price.setBid(Doubles.tryParse(getData(issue, "BidPrice", dataMap)));
+            price.setAsk(Doubles.tryParse(getData(issue, "AskPrice", dataMap)));
+            price.setLast(Doubles.tryParse(getData(issue, "LastPrice", dataMap)));
+            String df = getData(issue, "LastTime", dataMap);
+            if (!Strings.isNullOrEmpty(df)) {
+                try {
+                    price.setLastTime(HM_FORMAT.parse(df));
+                    Date d = new Date();
+                    price.getLastTime().setDate(1);
+                    price.getLastTime().setYear(d.getYear());
+                    price.getLastTime().setMonth(d.getMonth());
+                    price.getLastTime().setDate(d.getDate());
+                    if (price.getLastTime().getTime() > System.currentTimeMillis()) {
+                        price.getLastTime().setTime(price.getLastTime().getTime() - 1 * 24 * 60 * 60 * 1000);
+                    }
+                } catch (ParseException e) {
+                    DLog.MANAGER.warn("Exception parsing lastTime: " + df + " from issue " + issue);
+                }
+            }
+
+            prices.add(price);
+        }
+
+        return prices;
+
+    }
+
+    private static String getData(long issue, String name, Map<String, String> dataMap) {
+
+        String retVal = "";
+
+        if (dataMap.containsKey(issue + "." + name)) {
+            retVal = Strings.nullToEmpty(dataMap.get(dataMap.get(issue + "." + name)));
+        }
+
+        return retVal;
+
+    }
+
 }
