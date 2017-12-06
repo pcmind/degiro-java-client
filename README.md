@@ -32,7 +32,7 @@ Get a **DeGiro** instance:
 ```java
 DeGiro degiro = DeGiroFactory.newInstance(creds);
 ```
-If you don't want to create a new DeGiro session between executions of your code, you can instantiate DeGiro with a DPersistentSession object, in this case DeGiro API will try to reuse previous session values (if session is expired a new one is obtained and stored):
+If you don't want to create a new DeGiro session on each execution of your code. Instantiate DeGiro object indicating a DPersistentSession, in this case DeGiro API will try to reuse previous session values (if session is expired a new one is obtained and stored):
 
 ```java
 DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/to/session.json"));
