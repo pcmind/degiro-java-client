@@ -1,17 +1,41 @@
 # degiro-java-client
-Unofficial Degiro trading platform java API client.
 
-Work in progress...
-Roadmap:
+Unofficial DeGiro stock boker java API client.
+**WORK IN PROGRESS**
 
-Get portfolio
+The DeGiro java api client makes it easier to automate DeGiro stock broker actions. DeGiro java client provides a set of methods and objects that allow you to perform the same interactions as with the web trader. DeGiro could change their API in any moment. 
 
-Get/Set orders
+If you have any questions, please open an issue.
 
-Get RT prices
+## Usage
 
-Implement new order types:
+### Obtain a DeGiro instance
+Add {maven_publish_pending} artifact to your project. 
 
-Peak profit: Automatic stoploss adjusting if a stock increases its value in a non usual way. (a stock gets +15%, this actiavates peak profit, when stock decreases 2% from its peak, then sell all stocks). (proposal mode, automatic mode, automatic-dryrun mode)
+**Prepare a DCredentials** object with your credentials:
 
-Index based futures: if a tendency is confirmed (1min, 5min, 15min, 30min, 60min...) make profit of that: sell/buy according to the tendency and cancel the operation with a fixed gain/loss (adjustable risk) (proposal mode, automatic mode, automatic-dryrun mode)
+```Java
+DCredentials creds = new DCredentials() {
+
+        @Override
+        public String getUsername() {
+          return "YOUR_USERNAME";
+        }
+
+        @Override
+        public String getPassword() {
+          return "YOUR_PASSWORD";
+        }
+    };
+```
+Get a **DeGiro** instance:
+```java
+DeGiro degiro = DeGiroFactory.newInstance(creds);
+```
+If you don't want to create a new DeGiro session between executions of your code, you can instantiate DeGiro with a DPersistentSession object, in this case DeGiro API will try to reuse previous session values (if session is expired a new one is obtained and stored):
+
+```java
+DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/to/session.json"));
+```
+:warning: You are required to apply a security policy to your session file: A malicious user could take control of your DeGiro account.
+
