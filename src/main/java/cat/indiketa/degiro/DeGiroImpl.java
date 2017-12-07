@@ -18,6 +18,8 @@ import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
+import cat.indiketa.degiro.model.DProductSearch;
+import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
@@ -279,7 +281,7 @@ public class DeGiroImpl implements DeGiro {
             List<DRawVwdPrice> data = gson.fromJson(getResponseData(response), rawPriceData);
 
             List<DPrice> prices = DUtils.convert(data);
-            
+
             if (priceListener != null) {
                 for (DPrice price : prices) {
                     priceListener.priceChanged(price);
@@ -320,6 +322,71 @@ public class DeGiroImpl implements DeGiro {
         }
 
         return products;
+    }
+
+    /*
+     * Search product by name and type
+     *
+     * @param {string} options.text - Search term. For example: "Netflix" or "NFLX"
+     * @param {number} options.productType - See ProductTypes. Defaults to ProductTypes.all
+     * @param {number} options.sortColumn - Column to sory by. For example: "name". Defaults to `undefined`
+     * @param {number} options.sortType - See SortTypes. Defaults to `undefined`
+     * @param {number} options.limit - Results limit. Defaults to 7
+     * @param {number} options.offset - Results offset. Defaults to 0
+     * @return {Promise} Resolves to {data: Product[]}
+     */
+//    const searchProduct = ({
+//        text: searchText,
+//        productType = ProductTypes.all,
+//        sortColumn,
+//        sortType,
+//        limit = 7,
+//        offset = 0,
+//    }) => {
+//        const options = {
+//            searchText,
+//            productTypeId: productType,
+//            sortColumns: sortColumn,
+//            sortTypes: sortType,
+//            limit,
+//            offset,
+//        };
+//        const params = querystring.stringify(omitBy(options, isNil));
+//        log('searchProduct', params);
+//        return fetch(
+//            `${urls.productSearchUrl}v5/products/lookup?intAccount=${session.account}&sessionId=${session.id}&${params}`
+//        ).then(res => res.json());
+//    };
+    @Override
+    public DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException {
+
+        if (Strings.isNullOrEmpty(text)) {
+            throw new DeGiroException("Nothing to search");
+        }
+        
+        DProductSearch productSearch = null;
+
+        ensureLogged();
+        try {
+
+            String qs = "&searchText=" + text;
+
+            if (type != null && type.getTypeCode() != 0) {
+                qs += "&productTypeId=" + type.getTypeCode();
+            }
+            qs += "&limit=" + limit;
+            if (offset > 0) {
+                qs += "&offset=" + offset;
+            }
+
+            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/lookup?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId() + qs, null);
+            productSearch = gson.fromJson(getResponseData(response), DProductSearch.class);
+
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while retrieving product information", e);
+        }
+        
+        return productSearch;
     }
 
     private String getResponseData(DResponse response) throws DeGiroException {

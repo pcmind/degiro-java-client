@@ -7,6 +7,7 @@ import cat.indiketa.degiro.session.DPersistentSession;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
+import cat.indiketa.degiro.model.DProductType;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -64,21 +65,23 @@ public class Main {
 //        degiro.getTransactions(c, c2);
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
 //        degiro.getPricce();
-        List<String> productIds = new ArrayList<>();
-        productIds.add("1482366"); //dia
+//        List<String> productIds = new ArrayList<>();
+//        productIds.add("1482366"); //dia
+//
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
+//
+//        degiro.setPriceListener(new DPriceListener() {
+//            @Override
+//            public void priceChanged(DPrice price) {
+//                System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(price));
+//            }
+//        });
+//
+//        List<Long> vwdIssueIds = new ArrayList<>();
+//        vwdIssueIds.add(280099308L); //dia
+//        degiro.subscribeToPrice(vwdIssueIds);
 
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getProducts(productIds)));
-
-        degiro.setPriceListener(new DPriceListener() {
-            @Override
-            public void priceChanged(DPrice price) {
-                System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(price));
-            }
-        });
-
-        List<Long> vwdIssueIds = new ArrayList<>();
-        vwdIssueIds.add(280099308L); //dia
-        degiro.subscribeToPrice(vwdIssueIds);
+ System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
 
         while (true) {
             Thread.sleep(1000);

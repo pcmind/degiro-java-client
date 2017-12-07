@@ -6,6 +6,8 @@ import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DPriceListener;
+import cat.indiketa.degiro.model.DProductSearch;
+import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
 import java.util.Calendar;
@@ -38,5 +40,7 @@ public interface DeGiro {
     void setPricePollingInterval(int duration, TimeUnit unit) throws DeGiroException;
 
     void subscribeToPrice(Collection<Long> vwdIssueId) throws DeGiroException;
+
+    DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
 
 }
