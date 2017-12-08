@@ -1,5 +1,6 @@
 package cat.indiketa.degiro.model;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class DProducts {
         private boolean sellAmountAllowed;
         private boolean isFund;
         private double closePrice;
-        private String closePriceDate;
+        private Date closePriceDate;
         private String category;
         private String currency;
 
@@ -286,11 +287,11 @@ public class DProducts {
             this.closePrice = closePrice;
         }
 
-        public String getClosePriceDate() {
+        public Date getClosePriceDate() {
             return closePriceDate;
         }
 
-        public void setClosePriceDate(String closePriceDate) {
+        public void setClosePriceDate(Date closePriceDate) {
             this.closePriceDate = closePriceDate;
         }
 

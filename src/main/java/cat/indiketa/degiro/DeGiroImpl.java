@@ -39,6 +39,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,6 +76,7 @@ public class DeGiroImpl implements DeGiro {
         builder.registerTypeAdapter(DProductType.class, new DUtils.ProductTypeAdapter());
         builder.registerTypeAdapter(DOrderTime.class, new DUtils.OrderTimeTypeAdapter());
         builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
+        builder.registerTypeAdapter(Date.class, new DUtils.DateTypeAdapter());
         this.gson = builder.create();
         this.subscribedVwdIssues = new HashSet<>(500);
 
