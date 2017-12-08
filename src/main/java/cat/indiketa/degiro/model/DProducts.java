@@ -34,12 +34,12 @@ public class DProducts {
         private double contractSize;
         private String exchangeId;
         private String symbol;
-        private long productTypeId;
+        private DProductType productTypeId;
         private boolean tradable;
-        private List<String> orderTimeTypes = null;
+        private List<DOrderTime> orderTimeTypes = null;
         private boolean gtcAllowed;
-        private List<String> buyOrderTypes = null;
-        private List<String> sellOrderTypes = null;
+        private List<DOrderType> buyOrderTypes = null;
+        private List<DOrderType> sellOrderTypes = null;
         private boolean marketAllowed;
         private boolean limitHitOrderAllowed;
         private boolean stoplossAllowed;
@@ -158,11 +158,11 @@ public class DProducts {
             this.symbol = symbol;
         }
 
-        public long getProductTypeId() {
+        public DProductType getProductTypeId() {
             return productTypeId;
         }
 
-        public void setProductTypeId(long productTypeId) {
+        public void setProductTypeId(DProductType productTypeId) {
             this.productTypeId = productTypeId;
         }
 
@@ -174,11 +174,11 @@ public class DProducts {
             this.tradable = tradable;
         }
 
-        public List<String> getOrderTimeTypes() {
+        public List<DOrderTime> getOrderTimeTypes() {
             return orderTimeTypes;
         }
 
-        public void setOrderTimeTypes(List<String> orderTimeTypes) {
+        public void setOrderTimeTypes(List<DOrderTime> orderTimeTypes) {
             this.orderTimeTypes = orderTimeTypes;
         }
 
@@ -190,19 +190,19 @@ public class DProducts {
             this.gtcAllowed = gtcAllowed;
         }
 
-        public List<String> getBuyOrderTypes() {
+        public List<DOrderType> getBuyOrderTypes() {
             return buyOrderTypes;
         }
 
-        public void setBuyOrderTypes(List<String> buyOrderTypes) {
+        public void setBuyOrderTypes(List<DOrderType> buyOrderTypes) {
             this.buyOrderTypes = buyOrderTypes;
         }
 
-        public List<String> getSellOrderTypes() {
+        public List<DOrderType> getSellOrderTypes() {
             return sellOrderTypes;
         }
 
-        public void setSellOrderTypes(List<String> sellOrderTypes) {
+        public void setSellOrderTypes(List<DOrderType> sellOrderTypes) {
             this.sellOrderTypes = sellOrderTypes;
         }
 

@@ -31,4 +31,18 @@ public enum DProductType {
         return typeCode;
     }
 
+    public static DProductType getProductTypeByValue(int value) {
+        DProductType type = null;
+        int i = 0;
+        DProductType[] values = DProductType.values();
+        while (i < values.length && values[i].typeCode != value) {
+            i++;
+        }
+        if (i < values.length) {
+            type = values[i];
+        }
+
+        return type;
+    }
+
 }

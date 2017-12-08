@@ -16,6 +16,8 @@ import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DOrderTime;
+import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
@@ -30,6 +32,7 @@ import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -61,14 +64,18 @@ public class DeGiroImpl implements DeGiro {
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
     private final Set<Long> subscribedVwdIssues;
-    private Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
+    private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
 
     protected DeGiroImpl(DCredentials credentials, DSession session) {
         this.session = session;
         this.credentials = credentials;
         this.comm = new DCommunication(this.session);
-        this.gson = new Gson();
+        GsonBuilder builder = new GsonBuilder();
+        builder.registerTypeAdapter(DProductType.class, new DUtils.ProductTypeAdapter());
+        builder.registerTypeAdapter(DOrderTime.class, new DUtils.OrderTimeTypeAdapter());
+        builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
+        this.gson = builder.create();
         this.subscribedVwdIssues = new HashSet<>(500);
 
     }
@@ -363,7 +370,7 @@ public class DeGiroImpl implements DeGiro {
         if (Strings.isNullOrEmpty(text)) {
             throw new DeGiroException("Nothing to search");
         }
-        
+
         DProductSearch productSearch = null;
 
         ensureLogged();
@@ -385,7 +392,7 @@ public class DeGiroImpl implements DeGiro {
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving product information", e);
         }
-        
+
         return productSearch;
     }
 

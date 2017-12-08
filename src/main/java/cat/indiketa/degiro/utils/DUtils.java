@@ -12,6 +12,7 @@ import cat.indiketa.degiro.model.DPortfolio.DProductRow;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
 import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
@@ -22,6 +23,11 @@ import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -431,6 +437,81 @@ public class DUtils {
 
         return retVal;
 
+    }
+
+    public static class ProductTypeAdapter extends TypeAdapter<DProductType> {
+
+        @Override
+        public DProductType read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            int value = reader.nextInt();
+
+            return DProductType.getProductTypeByValue(value);
+
+        }
+
+        @Override
+        public void write(JsonWriter writer, DProductType value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+
+            writer.value(value.getTypeCode());
+        }
+    }
+
+    public static class OrderTimeTypeAdapter extends TypeAdapter<DOrderTime> {
+
+        @Override
+        public DOrderTime read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            return DOrderTime.getOrderByValue(value);
+
+        }
+
+        @Override
+        public void write(JsonWriter writer, DOrderTime value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+
+            writer.value(value.getStrValue());
+        }
+    }
+
+    public static class OrderTypeTypeAdapter extends TypeAdapter<DOrderType> {
+
+        @Override
+        public DOrderType read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            return DOrderType.getOrderByValue(value);
+
+        }
+
+        @Override
+        public void write(JsonWriter writer, DOrderType value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+
+            writer.value(value.getStrValue());
+        }
     }
 
 }

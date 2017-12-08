@@ -82,10 +82,10 @@ public class Main {
 //        degiro.subscribeToPrice(vwdIssueIds);
 
  System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
-
-        while (true) {
-            Thread.sleep(1000);
-        }
+    //
+    //        while (true) {
+    //            Thread.sleep(1000);
+    //        }
 
     }
 
