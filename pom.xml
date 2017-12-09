@@ -2,9 +2,20 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>cat.indiketa</groupId>
-    <artifactId>DeGiro</artifactId>
-    <version>1514</version>
+    <artifactId>degiro-java-client</artifactId>
+    <version>1.0.1714</version>
     <packaging>jar</packaging>
+    <name>Unofficial DeGiro Api</name>
+    <description>The DeGiro java api client makes it easier to automate DeGiro stock broker actions.</description>
+    <url>https://github.com/indiketa/degiro-java-client</url>
+    
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <dependencies>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
