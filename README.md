@@ -95,7 +95,42 @@ degiro.setPriceListener(new DPriceListener() {
 List<Long> vwdIssueIds = new ArrayList<>(1);
 vwdIssueIds.add(280099308L); // Example product
 degiro.subscribeToPrice(vwdIssueIds); // Callable multiple times with different products. 
+```
+By default, price updates are checked every 15 seconds. Polling frequency can be changed:
 
+```java
+degiro.setPricePollingInterval(1, TimeUnit.MINUTES);
+```
+Clear all subscriptions:
+
+```java
+degiro.clearPriceSubscriptions();
 ```
 
+### Order management
+Orders are placed in two steps: check order (to ensure order factibility) and confirmation. When DConfirmation status is 0 then the order is placed successfully.
 
+
+```java
+// Generate a new order. Signature:
+// public DNewOrder(DOrderAction action, DOrderType orderType, DOrderTime timeType, long productId, long size, BigDecimal limitPrice, BigDecimal stopPrice)
+
+DNewOrder order = new DNewOrder(DOrderAction.SELL, DOrderType.LIMITED, DOrderTime.DAY, 1482366, 20, new BigDecimal("4.5"), null);
+
+DOrderConfirmation confirmation = degiro.checkOrder(order);
+
+if (!Strings.isNullOrEmpty(confirmation.getConfirmationId())) {
+    DPlacedOrder placed = degiro.confirmOrder(order, confirmation.getConfirmationId());
+    if (place.getStatusId() != 0) {
+        throw new RuntimeException("Order not placed: " + place.getStatusText());
+    }
+}
+```
+Delete orders:
+
+```java
+DPlacedOrder deleted = degiro.deleteOrder(orderId);
+if (place.getStatusId() != 0) {
+    throw new RuntimeException("Order not placed: " + place.getStatusText());
+}
+```
