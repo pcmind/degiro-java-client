@@ -17,12 +17,12 @@ DCredentials creds = new DCredentials() {
 
         @Override
         public String getUsername() {
-          return "YOUR_USERNAME";
+           return "YOUR_USERNAME";
         }
 
         @Override
         public String getPassword() {
-          return "YOUR_PASSWORD";
+            return "YOUR_PASSWORD";
         }
     };
 
@@ -34,7 +34,7 @@ If you don't want to create a new DeGiro session on each execution instantiate a
 DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/to/session.json"));
 ```
 
-### Getting account data
+### Get account data
 
 ```java
 //Obtain current orders
@@ -55,8 +55,47 @@ Calendar c2 = Calendar.getInstance();
 c.add(Calendar.MONTH, -1);
 DTransactions transactions = degiro.getTransactions(c, c2);
 ```
+### Search products
 
+```java
 
+// Search products by text, signature:
+// DProductSearch searchProducts(String text, DProductType type, int limit, int offset);
+DProductSearch ps = degiro.searchProducts("telepizza", DProductType.ALL, 10, 0);
+for (DProduct product : ps.getProducts()) {
+    System.out.println(product.getId() + " " + product.getName());
+}
 
+// Get product info by id, signature:
+// DProducts getProducts(List<Long> productIds);
+List<Long> productIds = new ArrayList<>();
+productIds.add(1482366L); // productId obtained in (orders, portfolio, transactions, searchProducts....)
+degiro.getProducts(productIds);
+DProducts products = degiro.getProducts(productIds);
+
+for (DProduct value : products.getData().values()) {
+    System.out.println(value.getId() + " " + value.getName());
+}
+
+```
+
+### Subscribe to product price updates
+
+```java
+
+// Register a price update listener (called on price update)
+degiro.setPriceListener(new DPriceListener() {
+    @Override
+    public void priceChanged(DPrice price) {
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(price));
+    }
+});
+
+// Create a vwdIssueId list. Note that vwdIssueId is NOT a productId (vwdIssueId is a DProduct field).
+List<Long> vwdIssueIds = new ArrayList<>(1);
+vwdIssueIds.add(280099308L); // Example product
+degiro.subscribeToPrice(vwdIssueIds); // Callable multiple times with different products. 
+
+```
 
 
