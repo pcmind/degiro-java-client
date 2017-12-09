@@ -93,7 +93,7 @@ degiro.setPriceListener(new DPriceListener() {
 
 // Create a vwdIssueId list. Note that vwdIssueId is NOT a productId (vwdIssueId is a DProduct field).
 List<Long> vwdIssueIds = new ArrayList<>(1);
-vwdIssueIds.add(280099308L); // Example product
+vwdIssueIds.add(280099308L); // Example product vwdIssueId
 degiro.subscribeToPrice(vwdIssueIds); // Callable multiple times with different products. 
 ```
 By default, price updates are checked every 15 seconds. Polling frequency can be changed:
