@@ -10,11 +10,9 @@ If you have any questions, please open an issue.
 ## Usage
 
 ### Obtain a DeGiro instance
-Add {maven_publish_pending} artifact to your project. 
+Add {maven_publish_pending} artifact to your project and then use ```DeGiroFactory``` to obtain a ```DeGiro``` instance.
 
-**Prepare a DCredentials** object with your credentials:
-
-```Java
+```java
 DCredentials creds = new DCredentials() {
 
         @Override
@@ -27,15 +25,38 @@ DCredentials creds = new DCredentials() {
           return "YOUR_PASSWORD";
         }
     };
-```
-Get a **DeGiro** instance:
-```java
+
 DeGiro degiro = DeGiroFactory.newInstance(creds);
 ```
-If you don't want to create a new DeGiro session on each execution of your code instantiate a DeGiro object with a DPersistentSession. DeGiro API will try to reuse previous session values (if session is expired a new one is obtained and stored).
+If you don't want to create a new DeGiro session on each execution instantiate a DeGiro object with a DPersistentSession. DeGiro API will try to reuse session values (if previous session is expired a new one is obtained and stored).
 
 ```java
 DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/to/session.json"));
 ```
+
+### Getting account data
+
+```java
+//Obtain current orders
+DOrders orders = degiro.getOrders();
+
+//Obtain current portfolio
+DPortfolio portfolio = degiro.getPortfolio();
+
+// Get cash funds
+DCashFunds cashFunds = degiro.getCashFunds();
+
+// Get last executed transactions
+DLastTransactions lastTransactions = degiro.getLastTransactions();
+
+// Get transactions between dates 
+Calendar c = Calendar.getInstance();
+Calendar c2 = Calendar.getInstance();
+c.add(Calendar.MONTH, -1);
+DTransactions transactions = degiro.getTransactions(c, c2);
+```
+
+
+
 
 
