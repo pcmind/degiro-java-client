@@ -129,7 +129,7 @@ if (!Strings.isNullOrEmpty(confirmation.getConfirmationId())) {
 Delete orders:
 
 ```java
-DPlacedOrder deleted = degiro.deleteOrder(orderId);
+DPlacedOrder deleted = degiro.deleteOrder(orderId); // obtained in another call
 if (deleted.getStatusId() != 0) {
     throw new RuntimeException("Order not deleted: " + deleted.getStatusText());
 }
