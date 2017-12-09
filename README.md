@@ -94,6 +94,12 @@ degiro.setPriceListener(new DPriceListener() {
 List<Long> vwdIssueIds = new ArrayList<>(1);
 vwdIssueIds.add(280099308L); // Example product vwdIssueId
 degiro.subscribeToPrice(vwdIssueIds); // Callable multiple times with different products. 
+
+// You need some type of control loop, background thread, etc... to prevent JVM termination (out of this scope)
+while (true) {
+   Thread.sleep(1000);
+}
+
 ```
 By default, price updates are checked every 15 seconds. Polling frequency can be changed:
 
