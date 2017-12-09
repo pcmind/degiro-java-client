@@ -228,10 +228,10 @@ public class DUtils {
                         Calendar calendar = processDate((String) value.getValue());
                         DOrder.class.getMethod(methodName, Calendar.class).invoke(order, calendar);
                         break;
-                    case "orderType":
+                    case "orderTypeId":
                         order.setOrderType(DOrderType.getOrderByValue((int) (double) value.getValue()));
                         break;
-                    case "orderTime":
+                    case "orderTimeTypeId":
                         order.setOrderTime(DOrderTime.getOrderByValue((int) (double) value.getValue()));
                         break;
                     case "price":
@@ -263,7 +263,7 @@ public class DUtils {
         Calendar parsed = null;
 
         date = Strings.nullToEmpty(date);
-        
+
         if (date.contains(":")) {
             parsed = Calendar.getInstance();
             parsed.set(Calendar.HOUR_OF_DAY, Integer.parseInt(date.split(":")[0]));
@@ -271,7 +271,7 @@ public class DUtils {
             parsed.set(Calendar.SECOND, 0);
             parsed.set(Calendar.MILLISECOND, 0);
         } else if (date.contains("/")) {
-                parsed = Calendar.getInstance();
+            parsed = Calendar.getInstance();
             int month = Integer.parseInt(date.split("/")[1]) - 1;
 
             if (parsed.get(Calendar.MONTH) < month) {
@@ -286,7 +286,7 @@ public class DUtils {
             parsed.set(Calendar.MILLISECOND, 0);
 
         } else {
-        } 
+        }
         return parsed;
     }
 
