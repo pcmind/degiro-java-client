@@ -1,21 +1,19 @@
 package cat.indiketa.degiro.http;
 
 import cat.indiketa.degiro.session.DSession;
-import cat.indiketa.degiro.log.DLog;
 import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.List;
-import java.util.concurrent.Callable;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.protocol.BasicHttpContext;
 
@@ -27,7 +25,6 @@ public class DCommunication extends DHttpManager {
 
     private final Gson gson;
     private final BasicHttpContext context;
-    private static long call;
 
     public DCommunication(DSession session) {
         super(session);
@@ -36,31 +33,38 @@ public class DCommunication extends DHttpManager {
     }
 
     public DResponse getUrlData(String base, String uri, Object data) throws UnsupportedEncodingException, IOException {
-        return getUrlData(base, uri, data, null, false);
+        return getUrlData(base, uri, data, null, null);
     }
 
     public DResponse getUrlData(String base, String uri, Object data, List<Header> headers) throws UnsupportedEncodingException, IOException {
-        return getUrlData(base, uri, data, headers, false);
+        return getUrlData(base, uri, data, headers, null);
     }
 
-    public DResponse getUrlData(String base, String uri, Object data, List<Header> headers, boolean delete) throws UnsupportedEncodingException, IOException {
+    public DResponse getUrlData(String base, String uri, Object data, List<Header> headers, final String method) throws UnsupportedEncodingException, IOException {
 
-        long callId = ++call;
         String url = base + uri;
-        DLog.WIRE.trace(String.format("[%d] Call %s", callId, url));
-        HttpUriRequest request = null;
+        HttpRequestBase request = null;
 
-        if (data != null) {
-            HttpPost post = new HttpPost(url);
-            post.addHeader("Content-Type", "application/json");
-            String jsonData = gson.toJson(data);
-            post.setEntity(new StringEntity(jsonData));
-            request = post;
-        } else if (!delete) {
-            request = new HttpGet(url);
+        if (data == null) {
+            request = new HttpRequestBase() {
+                @Override
+                public String getMethod() {
+                    return Strings.isNullOrEmpty(method) ? "GET" : method;
+                }
+            };
         } else {
-            request = new HttpDelete(url);
+            request = new HttpEntityEnclosingRequestBase() {
+                @Override
+                public String getMethod() {
+                    return Strings.isNullOrEmpty(method) ? "POST" : method;
+                }
+            };
+            request.addHeader("Content-Type", "application/json");
+            String jsonData = gson.toJson(data);
+            ((HttpEntityEnclosingRequestBase) request).setEntity(new StringEntity(jsonData));
         }
+
+        request.setURI(URI.create(url));
 
         if (headers != null) {
             for (Header header : headers) {
@@ -74,7 +78,7 @@ public class DCommunication extends DHttpManager {
             dResponse = new DResponse();
             dResponse.setStatus(response.getStatusLine().getStatusCode());
             dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
-            dResponse.setMethod(data != null ? "POST" : "GET");
+            dResponse.setMethod(request.getMethod());
             dResponse.setUrl(url);
         }
 
@@ -83,35 +87,7 @@ public class DCommunication extends DHttpManager {
     }
 
     public DResponse getData(DSession session, String params, Object data) throws IOException {
-
-        long callId = ++call;
-
-//         `${urls.tradingUrl}v5/update/${session.account};jsessionid=${session.id}?${params}`
-        String url = session.getConfig().getTradingUrl() + "v5/update/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId() + "?" + params;
-        DLog.WIRE.trace(String.format("[%d] Call %s", callId, url));
-        HttpUriRequest request = null;
-
-        if (data != null) {
-            HttpPost post = new HttpPost(url);
-            post.addHeader("Content-Type", "application/json");
-            String jsonData = gson.toJson(data);
-            post.setEntity(new StringEntity(jsonData));
-            request = post;
-        } else {
-            request = new HttpGet(url);
-        }
-
-        DResponse dResponse;
-
-        try (CloseableHttpResponse response = httpClient.execute(request, context)) {
-            dResponse = new DResponse();
-            dResponse.setStatus(response.getStatusLine().getStatusCode());
-            dResponse.setText(CharStreams.toString(new InputStreamReader(response.getEntity().getContent(), Charsets.UTF_8)));
-
-        }
-
-        return dResponse;
-
+        return getUrlData(session.getConfig().getTradingUrl() + "v5/update/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId(), "?" + params, data);
     }
 
     public static class DResponse {
