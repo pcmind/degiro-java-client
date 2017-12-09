@@ -37,7 +37,7 @@ DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/t
 
 ```java
 //Obtain current orders
-DOrders orders = degiro.getOrders();
+List<DOrder> orders = degiro.getOrders();
 
 //Obtain current portfolio
 DPortfolio portfolio = degiro.getPortfolio();
@@ -131,10 +131,22 @@ if (!Strings.isNullOrEmpty(confirmation.getConfirmationId())) {
     }
 }
 ```
+Update order:
+
+```java
+// Update an order. Signature:
+// DPlacedOrder updateOrder(DOrder order, BigDecimal limit, BigDecimal stop);
+DPlacedOrder updated = degiro.updateOrder(order, new BigDecimal("0.04"), null); // obtained in getOrders()
+if (updated.getStatusId() != 0) {
+    throw new RuntimeException("Order not updated: " + updated.getStatusText());
+}
+```
+
+
 Delete orders:
 
 ```java
-DPlacedOrder deleted = degiro.deleteOrder(orderId); // obtained in another call
+DPlacedOrder deleted = degiro.deleteOrder(orderId); // orderId updated in getOrders() 
 if (deleted.getStatusId() != 0) {
     throw new RuntimeException("Order not deleted: " + deleted.getStatusText());
 }
