@@ -4,8 +4,8 @@ import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrder;
 import cat.indiketa.degiro.model.DOrderConfirmation;
-import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DPriceListener;
@@ -13,6 +13,7 @@ import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DProducts;
 import cat.indiketa.degiro.model.DTransactions;
+import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
@@ -28,7 +29,7 @@ public interface DeGiro {
 
     DLastTransactions getLastTransactions() throws DeGiroException;
 
-    DOrders getOrders() throws DeGiroException;
+    List<DOrder> getOrders() throws DeGiroException;
 
     DPortfolio getPortfolio() throws DeGiroException;
 
@@ -51,5 +52,7 @@ public interface DeGiro {
     DPlacedOrder confirmOrder(DNewOrder order, String confirmationId) throws DeGiroException;
 
     DPlacedOrder deleteOrder(String orderId) throws DeGiroException;
+
+    DPlacedOrder updateOrder(DOrder order, BigDecimal limit, BigDecimal stop) throws DeGiroException;
 
 }

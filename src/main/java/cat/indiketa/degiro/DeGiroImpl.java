@@ -17,6 +17,7 @@ import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrder;
 import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DOrderTime;
@@ -40,6 +41,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -121,7 +123,7 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DOrders getOrders() throws DeGiroException {
+    public List<DOrder> getOrders() throws DeGiroException {
 
         DOrders orders = null;
         ensureLogged();
@@ -133,7 +135,7 @@ public class DeGiroImpl implements DeGiro {
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving orders", e);
         }
-        return orders;
+        return orders.getOrders();
     }
 
     @Override
@@ -333,7 +335,7 @@ public class DeGiroImpl implements DeGiro {
             for (Long productId : productIds) {
                 productIdStr.add(productId + "");
             }
-            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIdStr    , headers);
+            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIdStr, headers);
             products = gson.fromJson(getResponseData(response), DProducts.class);
 
         } catch (IOException e) {
@@ -430,8 +432,42 @@ public class DeGiroImpl implements DeGiro {
 
         ensureLogged();
         try {
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + orderId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null, null, "DELETE");
+            placedOrder = gson.fromJson(getResponseData(response), DPlacedOrder.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking order", e);
+        }
 
-            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + orderId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null, null, true);
+        return placedOrder;
+
+    }
+
+    @Override
+    public DPlacedOrder updateOrder(DOrder order, BigDecimal limit, BigDecimal stop) throws DeGiroException {
+
+        if (order == null) {
+            throw new NullPointerException("Order was null");
+        }
+
+        DPlacedOrder placedOrder = null;
+
+        ensureLogged();
+        try {
+
+            Map degiroOrder = new HashMap();
+            degiroOrder.put("buysell", order.getBuysell().getValue());
+            degiroOrder.put("orderType", order.getOrderType().getValue());
+            degiroOrder.put("productId", order.getProductId());
+            degiroOrder.put("size", order.getSize());
+            degiroOrder.put("timeType", order.getOrderType().getValue());
+            if (limit != null) {
+                degiroOrder.put("price", limit.toPlainString());
+            }
+            if (stop != null) {
+                degiroOrder.put("stopPrice", stop.toPlainString());
+            }
+
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + order.getId() + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), degiroOrder, null, "PUT");
             placedOrder = gson.fromJson(getResponseData(response), DPlacedOrder.class);
         } catch (IOException e) {
             throw new DeGiroException("IOException while checking order", e);
