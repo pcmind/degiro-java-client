@@ -17,6 +17,7 @@ import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
@@ -80,6 +81,7 @@ public class DeGiroImpl implements DeGiro {
         builder.registerTypeAdapter(DProductType.class, new DUtils.ProductTypeAdapter());
         builder.registerTypeAdapter(DOrderTime.class, new DUtils.OrderTimeTypeAdapter());
         builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
+        builder.registerTypeAdapter(DOrderAction.class, new DUtils.OrderActionTypeAdapter());
         builder.registerTypeAdapter(Date.class, new DUtils.DateTypeAdapter());
         this.gson = builder.create();
         this.subscribedVwdIssues = new HashSet<>(500);

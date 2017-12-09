@@ -4,16 +4,12 @@ import cat.indiketa.degiro.DeGiro;
 import cat.indiketa.degiro.DeGiroFactory;
 import cat.indiketa.degiro.utils.DCredentials;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DNewOrder;
-import cat.indiketa.degiro.model.DOrderAction;
-import cat.indiketa.degiro.model.DOrderTime;
-import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.session.DPersistentSession;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.Properties;
 
 /**
@@ -56,14 +52,14 @@ public class Main {
         DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
 //        DeGiro degiro = DeGiroFactory.newInstance(creds);
 
-//        degiro.getOrders();
-//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
-//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
-//        Calendar c = Calendar.getInstance();
-//        Calendar c2 = Calendar.getInstance();
-//        c.add(Calendar.MONTH, -1);
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getOrders()));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getCashFunds()));
+        Calendar c = Calendar.getInstance();
+        Calendar c2 = Calendar.getInstance();
+        c.add(Calendar.MONTH, -1);
 //        degiro.getTransactions(c, c2);
-//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getTransactions(c, c2)));
 //        degiro.getPricce();
 //        List<String> productIds = new ArrayList<>();
 //        productIds.add("1482366"); //dia
@@ -82,8 +78,9 @@ public class Main {
 //        degiro.subscribeToPrice(vwdIssueIds);
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
         //
-        DNewOrder order = new DNewOrder(DOrderAction.SELL, DOrderType.LIMITED, DOrderTime.DAY, 1482366, 20, new BigDecimal("4.5"), null);
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.deleteOrder(degiro.confirmOrder(order, degiro.checkOrder(order).getConfirmationId()).getOrderId())));
+//        DNewOrder order = new DNewOrder(DOrderAction.SELL, DOrderType.LIMITED, DOrderTime.DAY, 1482366, 20, new BigDecimal("4.5"), null);
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.deleteOrder(degiro.confirmOrder(order, degiro.checkOrder(order).getConfirmationId()).getOrderId())));
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.deleteOrder(UUID.randomUUID().toString())));
 
         //        while (true) {
         //            Thread.sleep(1000);

@@ -11,6 +11,7 @@ import cat.indiketa.degiro.model.DPortfolio.DProductRow;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
 import cat.indiketa.degiro.model.DOrder;
+import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
@@ -48,41 +49,41 @@ import java.util.Set;
  * @author indiketa
  */
 public class DUtils {
-    
+
     private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    
+
     public static DPortfolio convert(DRawPortfolio rawPortfolio) {
         DPortfolio portfolio = new DPortfolio();
         List<DProductRow> active = new LinkedList<>();
         List<DProductRow> inactive = new LinkedList<>();
-        
+
         for (Value value : rawPortfolio.getPortfolio().getValue()) {
             DProductRow productRow = convertProduct(value);
-            
+
             if (productRow.getSize() == 0) {
                 inactive.add(productRow);
             } else {
                 active.add(productRow);
             }
         }
-        
+
         portfolio.setActive(active);
         portfolio.setInactive(inactive);
-        
+
         return portfolio;
-        
+
     }
-    
+
     public static DProductRow convertProduct(Value row) {
         DProductRow productRow = new DProductRow();
-        
+
         for (Value_ value : row.getValue()) {
-            
+
             try {
-                
+
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
-                
+
                 switch (value.getName()) {
                     case "id":
                     case "size":
@@ -99,7 +100,6 @@ public class DUtils {
                         DProductRow.class.getMethod(methodName, String.class).invoke(productRow, stringValue);
                         break;
                     case "lastUpdate":
-                        System.err.println(value.getValue());
                         break;
                     case "closedToday":
                     case "tradable":
@@ -115,41 +115,41 @@ public class DUtils {
                         }
                         DProductRow.class.getMethod(methodName, BigDecimal.class).invoke(productRow, bdValue);
                         break;
-                    
+
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 DLog.MANAGER.error("Error while setting value of portfolio", e);
             }
         }
-        
+
         return productRow;
     }
-    
+
     public static DCashFunds convert(DRawCashFunds rawCashFunds) {
         DCashFunds cashFunds = new DCashFunds();
         List<DCashFund> list = new LinkedList<>();
-        
+
         for (Value value : rawCashFunds.getCashFunds().getValue()) {
             DCashFund cashFund = convertCash(value);
             list.add(cashFund);
         }
-        
+
         cashFunds.setCashFunds(list);
-        
+
         return cashFunds;
-        
+
     }
-    
+
     public static DCashFund convertCash(Value row) {
-        
+
         DCashFund cashFund = new DCashFund();
-        
+
         for (Value_ value : row.getValue()) {
-            
+
             try {
-                
+
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
-                
+
                 switch (value.getName()) {
                     case "id":
                         int intValue = (int) (double) value.getValue();
@@ -159,9 +159,6 @@ public class DUtils {
                         String stringValue = (String) value.getValue();
                         DCashFund.class.getMethod(methodName, String.class).invoke(cashFund, stringValue);
                         break;
-                    case "lastUpdate":
-                        System.err.println(value.getValue());
-                        break;
                     case "value":
                         BigDecimal bdValue = new BigDecimal((double) value.getValue());
                         if (bdValue.scale() > 4) {
@@ -169,41 +166,41 @@ public class DUtils {
                         }
                         DCashFund.class.getMethod(methodName, BigDecimal.class).invoke(cashFund, bdValue);
                         break;
-                    
+
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 DLog.MANAGER.error("Error while setting value of cash fund", e);
             }
-            
+
         }
         return cashFund;
     }
-    
+
     public static DOrders convert(DRawOrders rawOrders) {
         DOrders orders = new DOrders();
         List<DOrder> list = new LinkedList<>();
-        
+
         for (Value value : rawOrders.getOrders().getValue()) {
             DOrder order = convertOrder(value);
             list.add(order);
         }
-        
+
         orders.setOrders(list);
-        
+
         return orders;
-        
+
     }
-    
+
     public static DOrder convertOrder(Value row) {
-        
+
         DOrder order = new DOrder();
-        
+
         for (Value_ value : row.getValue()) {
-            
+
             try {
-                
+
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
-                
+
                 switch (value.getName()) {
                     case "contractType":
                     case "contractSize":
@@ -219,11 +216,14 @@ public class DUtils {
                     case "id":
                     case "product":
                     case "currency":
-                    case "buysell":
                         String stringValue = (String) value.getValue();
                         DOrder.class.getMethod(methodName, String.class).invoke(order, stringValue);
                         break;
-                    
+                    case "buysell":
+                        String stringValue2 = (String) value.getValue();
+                        order.setBuysell(DOrderAction.getOrderByValue(stringValue2));
+                        break;
+
                     case "date":
                         Calendar calendar = processDate((String) value.getValue());
                         DOrder.class.getMethod(methodName, Calendar.class).invoke(order, calendar);
@@ -243,25 +243,25 @@ public class DUtils {
                         }
                         DOrder.class.getMethod(methodName, BigDecimal.class).invoke(order, bdValue);
                         break;
-                    
+
                     case "isModifiable":
                     case "isDeletable":
                         Boolean booleanValue = (Boolean) value.getValue();
                         DOrder.class.getMethod(methodName, boolean.class).invoke(order, booleanValue);
                         break;
-                    
+
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 DLog.MANAGER.error("Error while setting value of order", e);
             }
-            
+
         }
         return order;
     }
-    
+
     private static Calendar processDate(String date) {
         Calendar parsed = null;
-        
+
         date = Strings.nullToEmpty(date);
         
         if (date.contains(":")) {
@@ -271,50 +271,50 @@ public class DUtils {
             parsed.set(Calendar.SECOND, 0);
             parsed.set(Calendar.MILLISECOND, 0);
         } else if (date.contains("/")) {
-            parsed = Calendar.getInstance();
+                parsed = Calendar.getInstance();
             int month = Integer.parseInt(date.split("/")[1]) - 1;
-            
+
             if (parsed.get(Calendar.MONTH) < month) {
                 parsed.add(-1, Calendar.YEAR);
             }
-            
+
             parsed.set(Calendar.MONTH, month);
             parsed.set(Calendar.DATE, Integer.parseInt(date.split("/")[1]));
             parsed.set(Calendar.HOUR_OF_DAY, 0);
             parsed.set(Calendar.MINUTE, 0);
             parsed.set(Calendar.SECOND, 0);
             parsed.set(Calendar.MILLISECOND, 0);
-            
+
         } else {
-        }
+        } 
         return parsed;
     }
-    
+
     public static DLastTransactions convert(DRawTransactions rawOrders) {
         DLastTransactions transactions = new DLastTransactions();
         List<DTransaction> list = new LinkedList<>();
-        
+
         for (Value value : rawOrders.getTransactions().getValue()) {
             DTransaction order = convertTransaction(value);
             list.add(order);
         }
-        
+
         transactions.setTransactions(list);
-        
+
         return transactions;
-        
+
     }
-    
+
     public static DTransaction convertTransaction(Value row) {
-        
+
         DTransaction transaction = new DTransaction();
-        
+
         for (Value_ value : row.getValue()) {
-            
+
             try {
-                
+
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
-                
+
                 switch (value.getName()) {
                     case "contractType":
                     case "contractSize":
@@ -330,11 +330,14 @@ public class DUtils {
                         break;
                     case "product":
                     case "currency":
-                    case "buysell":
                         String stringValue = (String) value.getValue();
                         DTransaction.class.getMethod(methodName, String.class).invoke(transaction, stringValue);
                         break;
-                    
+                    case "buysell":
+                        String stringValue2 = (String) value.getValue();
+                        transaction.setBuysell(DOrderAction.getOrderByValue(stringValue2));
+                        break;
+
                     case "date":
                         Calendar calendar = processDate((String) value.getValue());
                         DTransaction.class.getMethod(methodName, Calendar.class).invoke(transaction, calendar);
@@ -354,50 +357,50 @@ public class DUtils {
                         }
                         DTransaction.class.getMethod(methodName, BigDecimal.class).invoke(transaction, bdValue);
                         break;
-                    
+
                     case "isModifiable":
                     case "isDeletable":
                         Boolean booleanValue = (Boolean) value.getValue();
                         DTransaction.class.getMethod(methodName, boolean.class).invoke(transaction, booleanValue);
                         break;
-                    
+
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                 DLog.MANAGER.error("Error while setting value of order", e);
             }
-            
+
         }
         return transaction;
     }
-    
+
     public static List<DPrice> convert(List<DRawVwdPrice> data) {
-        
+
         Set<Long> issues = new HashSet<>(100);
         Map<String, String> dataMap = new HashMap<>(data.size());
-        
+
         if (data != null) {
             for (DRawVwdPrice dRawVwdPrice : data) {
-                
+
                 if (Strings.nullToEmpty(dRawVwdPrice.getM()).equals("a_req")) {
                     String firstVal = dRawVwdPrice.getV().get(0);
                     issues.add(Long.parseLong(firstVal.substring(0, firstVal.indexOf("."))));
-                    
+
                 }
-                
+
                 if (dRawVwdPrice.getV() != null && !dRawVwdPrice.getV().isEmpty()) {
                     String v2 = null;
-                    
+
                     if (dRawVwdPrice.getV().size() > 1) {
                         v2 = dRawVwdPrice.getV().get(1);
                     }
-                    
+
                     dataMap.put(dRawVwdPrice.getV().get(0), v2);
                 }
             }
         }
-        
+
         List<DPrice> prices = new ArrayList<>(issues.size());
-        
+
         for (Long issue : issues) {
             DPrice price = new DPrice();
             price.setIssueId(issue);
@@ -420,28 +423,28 @@ public class DUtils {
                     DLog.MANAGER.warn("Exception parsing lastTime: " + df + " from issue " + issue);
                 }
             }
-            
+
             prices.add(price);
         }
-        
+
         return prices;
-        
+
     }
-    
+
     private static String getData(long issue, String name, Map<String, String> dataMap) {
-        
+
         String retVal = "";
-        
+
         if (dataMap.containsKey(issue + "." + name)) {
             retVal = Strings.nullToEmpty(dataMap.get(dataMap.get(issue + "." + name)));
         }
-        
+
         return retVal;
-        
+
     }
-    
+
     public static class ProductTypeAdapter extends TypeAdapter<DProductType> {
-        
+
         @Override
         public DProductType read(JsonReader reader) throws IOException {
             if (reader.peek() == JsonToken.NULL) {
@@ -449,24 +452,24 @@ public class DUtils {
                 return null;
             }
             int value = reader.nextInt();
-            
+
             return DProductType.getProductTypeByValue(value);
-            
+
         }
-        
+
         @Override
         public void write(JsonWriter writer, DProductType value) throws IOException {
             if (value == null) {
                 writer.nullValue();
                 return;
             }
-            
+
             writer.value(value.getTypeCode());
         }
     }
-    
+
     public static class OrderTimeTypeAdapter extends TypeAdapter<DOrderTime> {
-        
+
         @Override
         public DOrderTime read(JsonReader reader) throws IOException {
             if (reader.peek() == JsonToken.NULL) {
@@ -474,24 +477,24 @@ public class DUtils {
                 return null;
             }
             String value = reader.nextString();
-            
+
             return DOrderTime.getOrderByValue(value);
-            
+
         }
-        
+
         @Override
         public void write(JsonWriter writer, DOrderTime value) throws IOException {
             if (value == null) {
                 writer.nullValue();
                 return;
             }
-            
+
             writer.value(value.getStrValue());
         }
     }
-    
+
     public static class OrderTypeTypeAdapter extends TypeAdapter<DOrderType> {
-        
+
         @Override
         public DOrderType read(JsonReader reader) throws IOException {
             if (reader.peek() == JsonToken.NULL) {
@@ -499,24 +502,49 @@ public class DUtils {
                 return null;
             }
             String value = reader.nextString();
-            
+
             return DOrderType.getOrderByValue(value);
-            
+
         }
-        
+
         @Override
         public void write(JsonWriter writer, DOrderType value) throws IOException {
             if (value == null) {
                 writer.nullValue();
                 return;
             }
-            
+
             writer.value(value.getStrValue());
         }
     }
-    
+
+    public static class OrderActionTypeAdapter extends TypeAdapter<DOrderAction> {
+
+        @Override
+        public DOrderAction read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            return DOrderAction.getOrderByValue(value);
+
+        }
+
+        @Override
+        public void write(JsonWriter writer, DOrderAction value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+
+            writer.value(value.getStrValue());
+        }
+    }
+
     public static class DateTypeAdapter extends TypeAdapter<Date> {
-        
+
         @Override
         public Date read(JsonReader reader) throws IOException {
             if (reader.peek() == JsonToken.NULL) {
@@ -524,7 +552,7 @@ public class DUtils {
                 return null;
             }
             String value = reader.nextString();
-            
+
             Date d = null;
             try {
                 d = DATE_FORMAT.parse(value);
@@ -533,16 +561,16 @@ public class DUtils {
             }
             return d;
         }
-        
+
         @Override
         public void write(JsonWriter writer, Date value) throws IOException {
             if (value == null) {
                 writer.nullValue();
                 return;
             }
-            
+
             writer.value(DATE_FORMAT.format(value));
         }
     }
-    
+
 }

@@ -21,7 +21,7 @@ public class DOrder {
     private int contractType;
     private int contractSize;
     private String currency;
-    private String buysell;
+    private DOrderAction buysell;
     private long size;
     private long quantity;
     private BigDecimal price;
@@ -88,11 +88,11 @@ public class DOrder {
         this.currency = currency;
     }
 
-    public String getBuysell() {
+    public DOrderAction getBuysell() {
         return buysell;
     }
 
-    public void setBuysell(String buysell) {
+    public void setBuysell(DOrderAction buysell) {
         this.buysell = buysell;
     }
 
