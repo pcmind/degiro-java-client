@@ -314,7 +314,7 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public synchronized void clearPriceWatchs() {
+    public synchronized void clearPriceSubscriptions() {
         session.setVwdSession(null);
         subscribedVwdIssues.clear();
         pricePoller.cancel();
@@ -322,14 +322,18 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DProducts getProducts(List<String> productIds) throws DeGiroException {
+    public DProducts getProducts(List<Long> productIds) throws DeGiroException {
 
         DProducts products = null;
 
         ensureLogged();
         try {
             List<Header> headers = new ArrayList<>(1);
-            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIds, headers);
+            ArrayList<String> productIdStr = new ArrayList<>(productIds.size());
+            for (Long productId : productIds) {
+                productIdStr.add(productId + "");
+            }
+            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIdStr    , headers);
             products = gson.fromJson(getResponseData(response), DProducts.class);
 
         } catch (IOException e) {

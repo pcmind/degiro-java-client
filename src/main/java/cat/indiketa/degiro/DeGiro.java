@@ -24,8 +24,6 @@ import java.util.concurrent.TimeUnit;
  */
 public interface DeGiro {
 
-    void clearPriceWatchs();
-
     DCashFunds getCashFunds() throws DeGiroException;
 
     DLastTransactions getLastTransactions() throws DeGiroException;
@@ -33,8 +31,6 @@ public interface DeGiro {
     DOrders getOrders() throws DeGiroException;
 
     DPortfolio getPortfolio() throws DeGiroException;
-
-    DProducts getProducts(List<String> productIds) throws DeGiroException;
 
     DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException;
 
@@ -44,7 +40,11 @@ public interface DeGiro {
 
     void subscribeToPrice(Collection<Long> vwdIssueId) throws DeGiroException;
 
+    void clearPriceSubscriptions();
+
     DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
+
+    DProducts getProducts(List<Long> productIds) throws DeGiroException;
 
     DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException;
 
