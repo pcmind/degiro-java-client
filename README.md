@@ -1,7 +1,6 @@
 # degiro-java-client
 
 Unofficial DeGiro stock boker java API client.
-**WORK IN PROGRESS**
 
 The DeGiro java api client makes it easier to automate DeGiro stock broker actions. DeGiro java client provides a set of methods and objects that allow you to perform the same interactions as with the web trader. DeGiro could change their API in any moment. 
 
