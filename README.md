@@ -130,7 +130,7 @@ Delete orders:
 
 ```java
 DPlacedOrder deleted = degiro.deleteOrder(orderId);
-if (place.getStatusId() != 0) {
-    throw new RuntimeException("Order not placed: " + place.getStatusText());
+if (deleted.getStatusId() != 0) {
+    throw new RuntimeException("Order not deleted: " + deleted.getStatusText());
 }
 ```
