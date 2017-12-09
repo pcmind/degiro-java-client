@@ -131,7 +131,7 @@ if (!Strings.isNullOrEmpty(confirmation.getConfirmationId())) {
     }
 }
 ```
-Update order:
+Order update example:
 
 ```java
 // Update an order. Signature:
@@ -143,7 +143,7 @@ if (updated.getStatusId() != 0) {
 ```
 
 
-Delete orders:
+Order delete example:
 
 ```java
 DPlacedOrder deleted = degiro.deleteOrder(orderId); // orderId obtained in getOrders() 
