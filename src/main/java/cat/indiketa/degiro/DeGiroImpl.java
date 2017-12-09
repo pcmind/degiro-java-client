@@ -413,6 +413,28 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
+    @Override
+    public DPlacedOrder deleteOrder(String orderId) throws DeGiroException {
+
+        if (Strings.isNullOrEmpty(orderId)) {
+            throw new DeGiroException("orderId was empty");
+        }
+
+        DPlacedOrder placedOrder = null;
+
+        ensureLogged();
+        try {
+
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + orderId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null, null, true);
+            placedOrder = gson.fromJson(getResponseData(response), DPlacedOrder.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking order", e);
+        }
+
+        return placedOrder;
+
+    }
+
     private Map orderToMap(DNewOrder order) {
         Map degiroOrder = new HashMap();
         degiroOrder.put("buysell", order.getAction().getValue());

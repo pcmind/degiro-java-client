@@ -47,7 +47,9 @@ public interface DeGiro {
     DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
 
     DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException;
-    
+
     DPlacedOrder confirmOrder(DNewOrder order, String confirmationId) throws DeGiroException;
+
+    DPlacedOrder deleteOrder(String orderId) throws DeGiroException;
 
 }

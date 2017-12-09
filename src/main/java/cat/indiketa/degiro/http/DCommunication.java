@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -35,10 +36,14 @@ public class DCommunication extends DHttpManager {
     }
 
     public DResponse getUrlData(String base, String uri, Object data) throws UnsupportedEncodingException, IOException {
-        return getUrlData(base, uri, data, null);
+        return getUrlData(base, uri, data, null, false);
     }
 
     public DResponse getUrlData(String base, String uri, Object data, List<Header> headers) throws UnsupportedEncodingException, IOException {
+        return getUrlData(base, uri, data, headers, false);
+    }
+
+    public DResponse getUrlData(String base, String uri, Object data, List<Header> headers, boolean delete) throws UnsupportedEncodingException, IOException {
 
         long callId = ++call;
         String url = base + uri;
@@ -51,8 +56,10 @@ public class DCommunication extends DHttpManager {
             String jsonData = gson.toJson(data);
             post.setEntity(new StringEntity(jsonData));
             request = post;
-        } else {
+        } else if (!delete) {
             request = new HttpGet(url);
+        } else {
+            request = new HttpDelete(url);
         }
 
         if (headers != null) {

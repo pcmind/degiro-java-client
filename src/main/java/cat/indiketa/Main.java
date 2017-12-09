@@ -83,7 +83,7 @@ public class Main {
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
         //
         DNewOrder order = new DNewOrder(DOrderAction.SELL, DOrderType.LIMITED, DOrderTime.DAY, 1482366, 20, new BigDecimal("4.5"), null);
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.confirmOrder(order, degiro.checkOrder(order).getConfirmationId())));
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.deleteOrder(degiro.confirmOrder(order, degiro.checkOrder(order).getConfirmationId()).getOrderId())));
 
         //        while (true) {
         //            Thread.sleep(1000);
