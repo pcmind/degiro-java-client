@@ -5,7 +5,6 @@
  */
 package cat.indiketa.degiro.model;
 
-import cat.indiketa.degiro.model.DProducts.DProduct;
 import java.util.List;
 
 /**

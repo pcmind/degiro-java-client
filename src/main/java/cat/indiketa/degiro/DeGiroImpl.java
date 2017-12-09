@@ -16,8 +16,11 @@ import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
@@ -43,6 +46,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -333,39 +337,6 @@ public class DeGiroImpl implements DeGiro {
         return products;
     }
 
-    /*
-     * Search product by name and type
-     *
-     * @param {string} options.text - Search term. For example: "Netflix" or "NFLX"
-     * @param {number} options.productType - See ProductTypes. Defaults to ProductTypes.all
-     * @param {number} options.sortColumn - Column to sory by. For example: "name". Defaults to `undefined`
-     * @param {number} options.sortType - See SortTypes. Defaults to `undefined`
-     * @param {number} options.limit - Results limit. Defaults to 7
-     * @param {number} options.offset - Results offset. Defaults to 0
-     * @return {Promise} Resolves to {data: Product[]}
-     */
-//    const searchProduct = ({
-//        text: searchText,
-//        productType = ProductTypes.all,
-//        sortColumn,
-//        sortType,
-//        limit = 7,
-//        offset = 0,
-//    }) => {
-//        const options = {
-//            searchText,
-//            productTypeId: productType,
-//            sortColumns: sortColumn,
-//            sortTypes: sortType,
-//            limit,
-//            offset,
-//        };
-//        const params = querystring.stringify(omitBy(options, isNil));
-//        log('searchProduct', params);
-//        return fetch(
-//            `${urls.productSearchUrl}v5/products/lookup?intAccount=${session.account}&sessionId=${session.id}&${params}`
-//        ).then(res => res.json());
-//    };
     @Override
     public DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException {
 
@@ -396,6 +367,67 @@ public class DeGiroImpl implements DeGiro {
         }
 
         return productSearch;
+    }
+
+    @Override
+    public DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException {
+
+        if (order == null) {
+            throw new DeGiroException("Order was null (no order to check)");
+        }
+
+        DOrderConfirmation orderConfirmation = null;
+        ensureLogged();
+        try {
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/checkOrder;jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), orderToMap(order));
+            orderConfirmation = gson.fromJson(getResponseData(response), DOrderConfirmation.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking order", e);
+        }
+
+        return orderConfirmation;
+    }
+
+    @Override
+    public DPlacedOrder confirmOrder(DNewOrder order, String confirmationId) throws DeGiroException {
+
+        if (order == null) {
+            throw new DeGiroException("Order was null (no order to check)");
+        }
+
+        if (Strings.isNullOrEmpty(confirmationId)) {
+            throw new DeGiroException("ConfirmationId was empty");
+        }
+
+        DPlacedOrder placedOrder = null;
+
+        ensureLogged();
+        try {
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + confirmationId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), orderToMap(order));
+            placedOrder = gson.fromJson(getResponseData(response), DPlacedOrder.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking order", e);
+        }
+
+        return placedOrder;
+
+    }
+
+    private Map orderToMap(DNewOrder order) {
+        Map degiroOrder = new HashMap();
+        degiroOrder.put("buysell", order.getAction().getValue());
+        degiroOrder.put("orderType", order.getOrderType().getValue());
+        degiroOrder.put("productId", order.getProductId());
+        degiroOrder.put("size", order.getSize());
+        degiroOrder.put("timeType", order.getTimeType().getValue());
+        if (order.getLimitPrice() != null) {
+            degiroOrder.put("price", order.getLimitPrice().toPlainString());
+        }
+        if (order.getStopPrice() != null) {
+            degiroOrder.put("stopPrice", order.getStopPrice().toPlainString());
+        }
+        return degiroOrder;
+
     }
 
     private String getResponseData(DResponse response) throws DeGiroException {

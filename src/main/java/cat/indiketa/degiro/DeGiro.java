@@ -3,7 +3,10 @@ package cat.indiketa.degiro;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DOrders;
+import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPortfolio;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
@@ -42,5 +45,9 @@ public interface DeGiro {
     void subscribeToPrice(Collection<Long> vwdIssueId) throws DeGiroException;
 
     DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
+
+    DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException;
+    
+    DPlacedOrder confirmOrder(DNewOrder order, String confirmationId) throws DeGiroException;
 
 }

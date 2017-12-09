@@ -3,17 +3,17 @@ package cat.indiketa;
 import cat.indiketa.degiro.DeGiro;
 import cat.indiketa.degiro.DeGiroFactory;
 import cat.indiketa.degiro.utils.DCredentials;
-import cat.indiketa.degiro.session.DPersistentSession;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DPrice;
-import cat.indiketa.degiro.model.DPriceListener;
-import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrderAction;
+import cat.indiketa.degiro.model.DOrderTime;
+import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.session.DPersistentSession;
 import com.google.gson.GsonBuilder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Properties;
 
 /**
@@ -53,8 +53,8 @@ public class Main {
             }
         };
 
-//        DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
-        DeGiro degiro = DeGiroFactory.newInstance(creds);
+        DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/home/casa/session.txt"));
+//        DeGiro degiro = DeGiroFactory.newInstance(creds);
 
 //        degiro.getOrders();
 //        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.getPortfolio()));
@@ -80,13 +80,14 @@ public class Main {
 //        List<Long> vwdIssueIds = new ArrayList<>();
 //        vwdIssueIds.add(280099308L); //dia
 //        degiro.subscribeToPrice(vwdIssueIds);
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
+        //
+        DNewOrder order = new DNewOrder(DOrderAction.SELL, DOrderType.LIMITED, DOrderTime.DAY, 1482366, 20, new BigDecimal("4.5"), null);
+        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.confirmOrder(order, degiro.checkOrder(order).getConfirmationId())));
 
- System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(degiro.searchProducts("sab", DProductType.ALL, 10, 0)));
-    //
-    //        while (true) {
-    //            Thread.sleep(1000);
-    //        }
-
+        //        while (true) {
+        //            Thread.sleep(1000);
+        //        }
     }
 
 }
