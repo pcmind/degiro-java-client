@@ -12,6 +12,7 @@ import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
 import cat.indiketa.degiro.model.DOrder;
 import cat.indiketa.degiro.model.DOrderAction;
+import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
@@ -19,6 +20,7 @@ import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value_;
+import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
 import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
@@ -52,6 +54,7 @@ public class DUtils {
 
     private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
 
     public static DPortfolio convert(DRawPortfolio rawPortfolio) {
         DPortfolio portfolio = new DPortfolio();
@@ -73,6 +76,50 @@ public class DUtils {
 
         return portfolio;
 
+    }
+
+    public static DPortfolioSummary convertPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row) {
+        DPortfolioSummary portfolioSummary = new DPortfolioSummary();
+
+        for (Value_ value : row.getValue()) {
+
+            try {
+
+                String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
+
+                switch (value.getName()) {
+
+                    case "portVal":
+                    case "cash":
+                    case "total":
+                    case "pl":
+                    case "plToday":
+                    case "freeSpace":
+                    case "reportFreeRuimte":
+                    case "reportMargin":
+                    case "reportPortfValue":
+                    case "reportCashBal":
+                    case "reportNetliq":
+                    case "reportOverallMargin":
+                    case "reportTotalLongVal":
+                    case "reportDeficit":
+                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
+                        if (bdValue.scale() > 4) {
+                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
+                        }
+                        DPortfolioSummary.class.getMethod(methodName, BigDecimal.class).invoke(portfolioSummary, bdValue);
+                        break;
+                    case "reportCreationTime":
+                        portfolioSummary.setReportCreationTime(DATE_FORMAT2.parse((String) value.getValue()));
+                        break;
+
+                }
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | ParseException | InvocationTargetException e) {
+                DLog.MANAGER.error("Error while setting value of portfolioSummary", e);
+            }
+        }
+
+        return portfolioSummary;
     }
 
     public static DProductRow convertProduct(Value row) {

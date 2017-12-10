@@ -8,6 +8,7 @@ import cat.indiketa.degiro.model.DOrder;
 import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPortfolio;
+import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
@@ -32,6 +33,8 @@ public interface DeGiro {
     List<DOrder> getOrders() throws DeGiroException;
 
     DPortfolio getPortfolio() throws DeGiroException;
+    
+    DPortfolioSummary getPortfolioSummary() throws DeGiroException;
 
     DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException;
 

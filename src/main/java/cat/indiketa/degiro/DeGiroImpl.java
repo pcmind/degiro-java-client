@@ -23,6 +23,7 @@ import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DPlacedOrder;
+import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
@@ -32,6 +33,7 @@ import cat.indiketa.degiro.model.DTransactions;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
+import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
 import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.Joiner;
@@ -104,6 +106,22 @@ public class DeGiroImpl implements DeGiro {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
         return portfolio;
+    }
+
+    @Override
+    public DPortfolioSummary getPortfolioSummary() throws DeGiroException {
+
+        DPortfolioSummary portfolioSummary = null;
+        ensureLogged();
+
+        try {
+            DResponse response = comm.getData(session, "totalPortfolio=0", null);
+            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(getResponseData(response), DRawPortfolioSummary.class);
+            portfolioSummary = DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio());
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while retrieving portfolio", e);
+        }
+        return portfolioSummary;
     }
 
     @Override
