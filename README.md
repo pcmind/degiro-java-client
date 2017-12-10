@@ -42,6 +42,9 @@ List<DOrder> orders = degiro.getOrders();
 //Obtain current portfolio
 DPortfolio portfolio = degiro.getPortfolio();
 
+//Obtain portfolioSummary
+DPortfolioSummary portfolioSummary = degiro.getPortfolioSummary();
+
 // Get cash funds
 DCashFunds cashFunds = degiro.getCashFunds();
 
