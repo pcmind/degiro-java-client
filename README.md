@@ -40,7 +40,7 @@ DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/t
 List<DOrder> orders = degiro.getOrders();
 
 //Obtain current portfolio
-DPortfolio portfolio = degiro.getPortfolio();
+DPortfolioProducts portfolioProducts = degiro.getPortfolio();
 
 //Obtain portfolioSummary
 DPortfolioSummary portfolioSummary = degiro.getPortfolioSummary();
@@ -73,9 +73,9 @@ for (DProduct product : ps.getProducts()) {
 List<Long> productIds = new ArrayList<>();
 productIds.add(1482366L); // productId obtained in (orders, portfolio, transactions, searchProducts....)
 degiro.getProducts(productIds);
-DProducts products = degiro.getProducts(productIds);
+DProductDescriptions products = degiro.getProducts(productIds);
 
-for (DProduct value : products.getData().values()) {
+for (DProductDescription value : products.getData().values()) {
     System.out.println(value.getId() + " " + value.getName());
 }
 
