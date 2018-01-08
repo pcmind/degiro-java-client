@@ -14,7 +14,7 @@ import java.util.List;
 public class DProductSearch {
 
     private int offset;
-    private List<DProduct> products;
+    private List<DProductDescription> products;
 
     public int getOffset() {
         return offset;
@@ -24,11 +24,11 @@ public class DProductSearch {
         this.offset = offset;
     }
 
-    public List<DProduct> getProducts() {
+    public List<DProductDescription> getProducts() {
         return products;
     }
 
-    public void setProducts(List<DProduct> products) {
+    public void setProducts(List<DProductDescription> products) {
         this.products = products;
     }
 

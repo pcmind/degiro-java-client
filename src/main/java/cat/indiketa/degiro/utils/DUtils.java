@@ -6,8 +6,8 @@ import cat.indiketa.degiro.model.DCashFunds.DCashFund;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DOrders;
-import cat.indiketa.degiro.model.DPortfolio;
-import cat.indiketa.degiro.model.DPortfolio.DProductRow;
+import cat.indiketa.degiro.model.DPortfolioProducts;
+import cat.indiketa.degiro.model.DPortfolioProducts.DPortfolioProduct;
 import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
 import cat.indiketa.degiro.model.DOrder;
@@ -56,13 +56,13 @@ public class DUtils {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
 
-    public static DPortfolio convert(DRawPortfolio rawPortfolio) {
-        DPortfolio portfolio = new DPortfolio();
-        List<DProductRow> active = new LinkedList<>();
-        List<DProductRow> inactive = new LinkedList<>();
+    public static DPortfolioProducts convert(DRawPortfolio rawPortfolio) {
+        DPortfolioProducts portfolio = new DPortfolioProducts();
+        List<DPortfolioProduct> active = new LinkedList<>();
+        List<DPortfolioProduct> inactive = new LinkedList<>();
 
         for (Value value : rawPortfolio.getPortfolio().getValue()) {
-            DProductRow productRow = convertProduct(value);
+            DPortfolioProduct productRow = convertProduct(value);
 
             if (productRow.getSize() == 0) {
                 inactive.add(productRow);
@@ -115,15 +115,15 @@ public class DUtils {
 
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | ParseException | InvocationTargetException e) {
-                DLog.MANAGER.error("Error while setting value of portfolioSummary", e);
+                DLog.DEGIRO.error("Error while setting value of portfolioSummary", e);
             }
         }
 
         return portfolioSummary;
     }
 
-    public static DProductRow convertProduct(Value row) {
-        DProductRow productRow = new DProductRow();
+    public static DPortfolioProduct convertProduct(Value row) {
+        DPortfolioProduct productRow = new DPortfolioProduct();
 
         for (Value_ value : row.getValue()) {
 
@@ -137,21 +137,21 @@ public class DUtils {
                     case "change":
                     case "contractSize":
                         long longValue = (long) (double) value.getValue();
-                        DProductRow.class.getMethod(methodName, long.class).invoke(productRow, longValue);
+                        DPortfolioProduct.class.getMethod(methodName, long.class).invoke(productRow, longValue);
                         break;
                     case "product":
                     case "currency":
                     case "exchangeBriefCode":
                     case "productCategory":
                         String stringValue = (String) value.getValue();
-                        DProductRow.class.getMethod(methodName, String.class).invoke(productRow, stringValue);
+                        DPortfolioProduct.class.getMethod(methodName, String.class).invoke(productRow, stringValue);
                         break;
                     case "lastUpdate":
                         break;
                     case "closedToday":
                     case "tradable":
                         Boolean booleanValue = (Boolean) value.getValue();
-                        DProductRow.class.getMethod(methodName, boolean.class).invoke(productRow, booleanValue);
+                        DPortfolioProduct.class.getMethod(methodName, boolean.class).invoke(productRow, booleanValue);
                         break;
                     case "price":
                     case "value":
@@ -160,12 +160,12 @@ public class DUtils {
                         if (bdValue.scale() > 4) {
                             bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
                         }
-                        DProductRow.class.getMethod(methodName, BigDecimal.class).invoke(productRow, bdValue);
+                        DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, bdValue);
                         break;
 
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                DLog.MANAGER.error("Error while setting value of portfolio", e);
+                DLog.DEGIRO.error("Error while setting value of portfolio", e);
             }
         }
 
@@ -216,7 +216,7 @@ public class DUtils {
 
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                DLog.MANAGER.error("Error while setting value of cash fund", e);
+                DLog.DEGIRO.error("Error while setting value of cash fund", e);
             }
 
         }
@@ -299,7 +299,7 @@ public class DUtils {
 
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                DLog.MANAGER.error("Error while setting value of order", e);
+                DLog.DEGIRO.error("Error while setting value of order", e);
             }
 
         }
@@ -413,7 +413,7 @@ public class DUtils {
 
                 }
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                DLog.MANAGER.error("Error while setting value of order", e);
+                DLog.DEGIRO.error("Error while setting value of order", e);
             }
 
         }
@@ -467,7 +467,7 @@ public class DUtils {
                         price.getLastTime().setTime(price.getLastTime().getTime() - 1 * 24 * 60 * 60 * 1000);
                     }
                 } catch (ParseException e) {
-                    DLog.MANAGER.warn("Exception parsing lastTime: " + df + " from issue " + issue);
+                    DLog.DEGIRO.warn("Exception parsing lastTime: " + df + " from issue " + issue);
                 }
             }
 
@@ -604,7 +604,7 @@ public class DUtils {
             try {
                 d = DATE_FORMAT.parse(value);
             } catch (ParseException e) {
-                DLog.MANAGER.warn("Date not parseable: " + value);
+                DLog.DEGIRO.warn("Date not parseable: " + value);
             }
             return d;
         }

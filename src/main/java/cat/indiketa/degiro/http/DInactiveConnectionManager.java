@@ -28,7 +28,7 @@ class DInactiveConnectionManager extends Thread {
                     connectionManager.closeExpiredConnections();
                     connectionManager.closeIdleConnections(30, TimeUnit.SECONDS);
                 } catch (Exception e) {
-                    DLog.WIRE.error("Exception closing expired connections", e);
+                    DLog.HTTP.error("Exception closing expired connections", e);
                 }
             }
         }

@@ -10,9 +10,9 @@ import org.apache.logging.log4j.Logger;
  */
 public enum DLog {
 
-    SESSION,
-    MANAGER,
-    WIRE;
+    DEGIRO,
+    ENGINE,
+    HTTP;
 
     private final Logger logger;
 

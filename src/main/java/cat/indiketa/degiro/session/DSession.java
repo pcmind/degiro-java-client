@@ -19,6 +19,8 @@ public class DSession {
     @Expose
     protected String vwdSession;
     @Expose
+    protected long lastVwdSessionUsed;
+    @Expose
     protected List<BasicClientCookie> cookies;
 
     public DConfig getConfig() {
@@ -75,6 +77,14 @@ public class DSession {
 
     public void setCookies(List<BasicClientCookie> cookies) {
         this.cookies = cookies;
+    }
+
+    public long getLastVwdSessionUsed() {
+        return lastVwdSessionUsed;
+    }
+
+    public void setLastVwdSessionUsed(long lastVwdSessionUsed) {
+        this.lastVwdSessionUsed = lastVwdSessionUsed;
     }
 
 }

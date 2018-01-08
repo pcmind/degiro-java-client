@@ -7,12 +7,12 @@ import cat.indiketa.degiro.model.DNewOrder;
 import cat.indiketa.degiro.model.DOrder;
 import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DPlacedOrder;
-import cat.indiketa.degiro.model.DPortfolio;
+import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
-import cat.indiketa.degiro.model.DProducts;
+import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.model.DTransactions;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -32,7 +32,7 @@ public interface DeGiro {
 
     List<DOrder> getOrders() throws DeGiroException;
 
-    DPortfolio getPortfolio() throws DeGiroException;
+    DPortfolioProducts getPortfolio() throws DeGiroException;
     
     DPortfolioSummary getPortfolioSummary() throws DeGiroException;
 
@@ -48,7 +48,7 @@ public interface DeGiro {
 
     DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
 
-    DProducts getProducts(List<Long> productIds) throws DeGiroException;
+    DProductDescriptions getProducts(List<Long> productIds) throws DeGiroException;
 
     DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException;
 

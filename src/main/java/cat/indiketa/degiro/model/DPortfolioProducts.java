@@ -3,48 +3,49 @@ package cat.indiketa.degiro.model;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *
  * @author indiketa
  */
-public class DPortfolio {
+public class DPortfolioProducts {
 
-    public List<DProductRow> active;
-    public List<DProductRow> inactive;
+    private List<DPortfolioProduct> active;
+    private List<DPortfolioProduct> inactive;
 
-    public List<DProductRow> getActive() {
+    public List<DPortfolioProduct> getActive() {
         return active;
     }
 
-    public void setActive(List<DProductRow> active) {
+    public void setActive(List<DPortfolioProduct> active) {
         this.active = active;
     }
 
-    public List<DProductRow> getInactive() {
+    public List<DPortfolioProduct> getInactive() {
         return inactive;
     }
 
-    public void setInactive(List<DProductRow> inactive) {
+    public void setInactive(List<DPortfolioProduct> inactive) {
         this.inactive = inactive;
     }
 
-    public static class DProductRow {
+    public static class DPortfolioProduct {
 
-        private long id;
-        private String product;
-        private long size;
-        private BigDecimal price;
-        private long change;
-        private BigDecimal value;
-        private Date lastUpdate;
-        private String currency;
-        private String exchangeBriefCode;
-        private long contractSize;
-        private boolean closedToday;
-        private String productCategory;
-        private boolean tradable;
-        private BigDecimal closePrice;
+        protected long id;
+        protected String product;
+        protected long size;
+        protected BigDecimal price;
+        protected long change;
+        protected BigDecimal value;
+        protected Date lastUpdate;
+        protected String currency;
+        protected String exchangeBriefCode;
+        protected long contractSize;
+        protected boolean closedToday;
+        protected String productCategory;
+        protected boolean tradable;
+        protected BigDecimal closePrice;
 
         public long getId() {
             return id;
@@ -157,6 +158,53 @@ public class DPortfolio {
         public void setClosePrice(BigDecimal closePrice) {
             this.closePrice = closePrice;
         }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 29 * hash + (int) (this.id ^ (this.id >>> 32));
+            hash = 29 * hash + (int) (this.size ^ (this.size >>> 32));
+            hash = 29 * hash + Objects.hashCode(this.price);
+            hash = 29 * hash + Objects.hashCode(this.value);
+            hash = 29 * hash + Objects.hashCode(this.lastUpdate);
+            hash = 29 * hash + Objects.hashCode(this.productCategory);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final DPortfolioProduct other = (DPortfolioProduct) obj;
+            if (this.id != other.id) {
+                return false;
+            }
+            if (this.size != other.size) {
+                return false;
+            }
+            if (this.tradable != other.tradable) {
+                return false;
+            }
+            if (!Objects.equals(this.price, other.price)) {
+                return false;
+            }
+            if (!Objects.equals(this.value, other.value)) {
+                return false;
+            }
+            if (!Objects.equals(this.lastUpdate, other.lastUpdate)) {
+                return false;
+            }
+            return true;
+        }
+        
+        
 
     }
 

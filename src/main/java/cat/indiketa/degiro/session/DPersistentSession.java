@@ -20,10 +20,14 @@ import org.apache.http.impl.cookie.BasicClientCookie;
  */
 public class DPersistentSession extends DSession {
 
-    private volatile String file;
+    private volatile File file;
     private volatile Gson gson;
 
     public DPersistentSession(String file) {
+        this(Strings.isNullOrEmpty(file) ? null : new File(file));
+    }
+
+    public DPersistentSession(File file) {
         this.file = file;
         gson = new GsonBuilder().setPrettyPrinting().excludeFieldsWithModifiers(Modifier.VOLATILE, Modifier.STATIC).create();
         loadSession();
@@ -31,12 +35,12 @@ public class DPersistentSession extends DSession {
 
     private void loadSession() {
 
-        if (Strings.isNullOrEmpty(file)) { // early exit
+        if (file == null) { // early exit
             return;
         }
 
         try {
-            if (new File(file).exists()) {
+            if (file.exists()) {
                 try (FileReader fr = new FileReader(file)) {
                     DSession ds = gson.fromJson(fr, DSession.class);
                     if (ds != null) {
@@ -44,18 +48,19 @@ public class DPersistentSession extends DSession {
                         client = ds.client;
                         vwdSession = ds.vwdSession;
                         cookies = ds.cookies;
-                        DLog.SESSION.info("Permanent session storage loaded (" + new File(file).length() + " bytes).");
+                        lastVwdSessionUsed = ds.lastVwdSessionUsed;
+                        DLog.DEGIRO.info("Permanent session storage loaded (" + file.length() + " bytes).");
                     }
                 }
             }
         } catch (IOException e) {
-            DLog.SESSION.error("Error while loading persistent session data", e);
+            DLog.DEGIRO.error("Error while loading persistent session data", e);
         }
     }
 
     private void saveSession() {
 
-        if (Strings.isNullOrEmpty(file)) { // early exit
+        if (file == null) { // early exit
             return;
         }
 
@@ -63,9 +68,9 @@ public class DPersistentSession extends DSession {
             try (FileWriter fw = new FileWriter(file)) {
                 fw.write(gson.toJson(this));
             }
-            DLog.SESSION.info("Permanent session storage updated (" + new File(file).length() + " bytes).");
+            DLog.DEGIRO.info("Permanent session storage updated (" + file.length() + " bytes).");
         } catch (IOException e) {
-            DLog.SESSION.error("Error while saving persistent session data", e);
+            DLog.DEGIRO.error("Error while saving persistent session data", e);
         }
 
     }
@@ -94,4 +99,11 @@ public class DPersistentSession extends DSession {
         saveSession();
     }
 
+    @Override
+    public void setLastVwdSessionUsed(long lastVwdSessionUsed) {
+        super.setLastVwdSessionUsed(lastVwdSessionUsed);
+        saveSession();
+    }
+
+    
 }

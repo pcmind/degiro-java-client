@@ -59,7 +59,7 @@ public class DHttpManager {
             contextSSL.loadTrustMaterial(null, new TrustSelfSignedStrategy());
             sslSocketFactory = new SSLConnectionSocketFactory(contextSSL.build(), new DefaultHostnameVerifier());
         } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-            DLog.WIRE.fatal("Exception creating SSL socket factory", e);
+            DLog.HTTP.fatal("Exception creating SSL socket factory", e);
         }
 
         Registry<ConnectionSocketFactory> tipusConnexions = RegistryBuilder.<ConnectionSocketFactory>create()

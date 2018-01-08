@@ -2,12 +2,13 @@ package cat.indiketa.degiro.model;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *
  * @author indiketa
  */
-public class DProduct {
+public class DProductDescription {
 
     private String feedQuality;
     private long orderBookDepth;
@@ -16,7 +17,7 @@ public class DProduct {
     private boolean qualitySwitchable;
     private boolean qualitySwitchFree;
     private long vwdModuleId;
-    private String id;
+    private long id;
     private String name;
     private String isin;
     private double contractSize;
@@ -98,11 +99,11 @@ public class DProduct {
         this.vwdModuleId = vwdModuleId;
     }
 
-    public String getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -297,5 +298,32 @@ public class DProduct {
     public void setCurrency(String currency) {
         this.currency = currency;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 23 * hash + Objects.hashCode(this.isin);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final DProductDescription other = (DProductDescription) obj;
+        if (!Objects.equals(this.isin, other.isin)) {
+            return false;
+        }
+        return true;
+    }
+    
+    
 
 }
