@@ -2,6 +2,7 @@ package cat.indiketa.degiro.engine;
 
 import cat.indiketa.degiro.DeGiro;
 import cat.indiketa.degiro.DeGiroFactory;
+import cat.indiketa.degiro.engine.event.DSummaryChanged;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPortfolioProducts;
@@ -12,6 +13,7 @@ import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.session.DPersistentSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import com.google.common.base.Joiner;
+import com.google.common.eventbus.AsyncEventBus;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,6 +24,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -37,6 +42,9 @@ public class DEngine extends Thread {
 
     private Timer portfolioTimer;
     private Timer portfolioSummaryTimer;
+    private final AsyncEventBus eventBus;
+
+    private DPortfolioSummary lastSummary;
 
     private final static String PORTFOLIO = "PF";
     private final static String SUMMARY = "SM";
@@ -54,6 +62,8 @@ public class DEngine extends Thread {
         this.config = config;
         this.pathManager = new PathManager(config.getDataDirectory());
         this.productMap = new HashMap<>();
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 5, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        this.eventBus = new AsyncEventBus(executor);
         DLog.ENGINE.info("Creating DeGiro manager instance...");
         File sessionFile = pathManager.getSessionFile(credentials.getUsername());
         degiro = DeGiroFactory.newInstance(credentials, new DPersistentSession(sessionFile));
@@ -67,7 +77,7 @@ public class DEngine extends Thread {
     @Override
     public void run() {
 
-        DLog.ENGINE.info("Starting control plane...");
+        DLog.ENGINE.info("Initializing control plane...");
         startPortfolioTimer();
         startPortfolioSummaryTimer();
 
@@ -79,6 +89,8 @@ public class DEngine extends Thread {
 
             }
         }
+
+        DLog.ENGINE.info("Control plane initialized");
 
     }
 
@@ -153,7 +165,8 @@ public class DEngine extends Thread {
             DProductDescriptions descriptions = degiro.getProducts(productIds);
             Map<Long, DProductDescription> data = descriptions.getData();
             for (Long productId : data.keySet()) {
-                productMap.get(productId).setDescription(data.get(productId));
+                DProductDescription description = data.get(productId);
+                productMap.get(productId).setDescription(description);
             }
             inactiveComponents.remove(DESCRIPTION);
         }
@@ -169,6 +182,11 @@ public class DEngine extends Thread {
                     DPortfolioSummary summary = degiro.getPortfolioSummary();
                     DLog.ENGINE.info("Portfolio summary refreshed (" + summary.toString() + ").");
                     inactiveComponents.remove(SUMMARY);
+
+                    if (lastSummary != null && lastSummary.hashCode() != summary.hashCode()) {
+                        eventBus.post(new DSummaryChanged(summary));
+                    }
+                    lastSummary = summary;
                 } catch (Exception e) {
                     DLog.ENGINE.error("Exception while refreshing portfolio", e);
                 }
@@ -179,6 +197,24 @@ public class DEngine extends Thread {
 
     public DEngineConfig getConfig() {
         return config;
+    }
+
+    public DPortfolioSummary getLastSummary() {
+        return lastSummary;
+    }
+
+    public List<DProduct> getPortfolio() {
+        List<DProduct> products = new LinkedList<>();
+
+        for (DProduct value : productMap.values()) {
+            products.add(value);
+        }
+
+        return products;
+    }
+
+    AsyncEventBus getEventBus() {
+        return eventBus;
     }
 
 }

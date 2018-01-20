@@ -110,7 +110,11 @@ public class DUtils {
                         DPortfolioSummary.class.getMethod(methodName, BigDecimal.class).invoke(portfolioSummary, bdValue);
                         break;
                     case "reportCreationTime":
-                        portfolioSummary.setReportCreationTime(DATE_FORMAT2.parse((String) value.getValue()));
+                        try {
+                            portfolioSummary.setReportCreationTime(DATE_FORMAT2.parse((String) value.getValue()));
+                        } catch (ParseException e) {
+                            portfolioSummary.setReportCreationTime(HM_FORMAT.parse((String) value.getValue()));
+                        }
                         break;
 
                 }

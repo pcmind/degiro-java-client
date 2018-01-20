@@ -158,16 +158,23 @@ public class DPortfolioProducts {
         public void setClosePrice(BigDecimal closePrice) {
             this.closePrice = closePrice;
         }
-
+        
         @Override
         public int hashCode() {
-            int hash = 3;
-            hash = 29 * hash + (int) (this.id ^ (this.id >>> 32));
-            hash = 29 * hash + (int) (this.size ^ (this.size >>> 32));
-            hash = 29 * hash + Objects.hashCode(this.price);
-            hash = 29 * hash + Objects.hashCode(this.value);
-            hash = 29 * hash + Objects.hashCode(this.lastUpdate);
-            hash = 29 * hash + Objects.hashCode(this.productCategory);
+            int hash = 7;
+            hash = 53 * hash + (int) (this.id ^ (this.id >>> 32));
+            hash = 53 * hash + Objects.hashCode(this.product);
+            hash = 53 * hash + (int) (this.size ^ (this.size >>> 32));
+            hash = 53 * hash + Objects.hashCode(this.price);
+            hash = 53 * hash + (int) (this.change ^ (this.change >>> 32));
+            hash = 53 * hash + Objects.hashCode(this.value);
+            hash = 53 * hash + Objects.hashCode(this.currency);
+            hash = 53 * hash + Objects.hashCode(this.exchangeBriefCode);
+            hash = 53 * hash + (int) (this.contractSize ^ (this.contractSize >>> 32));
+            hash = 53 * hash + (this.closedToday ? 1 : 0);
+            hash = 53 * hash + Objects.hashCode(this.productCategory);
+            hash = 53 * hash + (this.tradable ? 1 : 0);
+            hash = 53 * hash + Objects.hashCode(this.closePrice);
             return hash;
         }
 
@@ -189,7 +196,28 @@ public class DPortfolioProducts {
             if (this.size != other.size) {
                 return false;
             }
+            if (this.change != other.change) {
+                return false;
+            }
+            if (this.contractSize != other.contractSize) {
+                return false;
+            }
+            if (this.closedToday != other.closedToday) {
+                return false;
+            }
             if (this.tradable != other.tradable) {
+                return false;
+            }
+            if (!Objects.equals(this.product, other.product)) {
+                return false;
+            }
+            if (!Objects.equals(this.currency, other.currency)) {
+                return false;
+            }
+            if (!Objects.equals(this.exchangeBriefCode, other.exchangeBriefCode)) {
+                return false;
+            }
+            if (!Objects.equals(this.productCategory, other.productCategory)) {
                 return false;
             }
             if (!Objects.equals(this.price, other.price)) {
@@ -198,13 +226,13 @@ public class DPortfolioProducts {
             if (!Objects.equals(this.value, other.value)) {
                 return false;
             }
-            if (!Objects.equals(this.lastUpdate, other.lastUpdate)) {
+            if (!Objects.equals(this.closePrice, other.closePrice)) {
                 return false;
             }
             return true;
         }
-        
-        
+
+
 
     }
 
