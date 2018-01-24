@@ -8,11 +8,14 @@ import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioProducts.DPortfolioProduct;
 import cat.indiketa.degiro.model.DPortfolioSummary;
+import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductDescription;
 import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.session.DPersistentSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.eventbus.AsyncEventBus;
 import java.io.File;
 import java.io.IOException;
@@ -32,13 +35,14 @@ import java.util.concurrent.TimeUnit;
  *
  * @author indiketa
  */
-public class DEngine extends Thread {
+public class DEngine {
 
     private final PathManager pathManager;
     private final DeGiro degiro;
     private DEngineConfig config;
 
     private final Map<Long, DProduct> productMap;
+    private final Map<String, DProduct> productMapByIssue;
 
     private Timer portfolioTimer;
     private Timer portfolioSummaryTimer;
@@ -57,16 +61,23 @@ public class DEngine extends Thread {
     }
 
     public DEngine(DEngineConfig config, DCredentials credentials) throws IOException {
-        super("engine");
-        setDaemon(false);
         this.config = config;
         this.pathManager = new PathManager(config.getDataDirectory());
         this.productMap = new HashMap<>();
+        this.productMapByIssue = new HashMap<>();
         ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 5, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         this.eventBus = new AsyncEventBus(executor);
         DLog.ENGINE.info("Creating DeGiro manager instance...");
         File sessionFile = pathManager.getSessionFile(credentials.getUsername());
         degiro = DeGiroFactory.newInstance(credentials, new DPersistentSession(sessionFile));
+        degiro.setPriceListener(new DPriceListener() {
+            @Override
+            public void priceChanged(DPrice price) {
+                DEngine.this.inactiveComponents.remove(PRICES);
+                DLog.ENGINE.fatal("Price issueId:" + price.getIssueId());
+                DEngine.this.productMapByIssue.get(price.getIssueId()).setLastPrice(price);
+            }
+        });
         this.inactiveComponents = new HashSet<>();
         this.inactiveComponents.add(PORTFOLIO);
         this.inactiveComponents.add(SUMMARY);
@@ -74,8 +85,7 @@ public class DEngine extends Thread {
         this.inactiveComponents.add(PRICES);
     }
 
-    @Override
-    public void run() {
+    public void startEngine() {
 
         DLog.ENGINE.info("Initializing control plane...");
         startPortfolioTimer();
@@ -164,11 +174,20 @@ public class DEngine extends Thread {
             DLog.ENGINE.info("Fetching " + productIds.size() + " product descriptions");
             DProductDescriptions descriptions = degiro.getProducts(productIds);
             Map<Long, DProductDescription> data = descriptions.getData();
+            List<String> vwdIssueId = new LinkedList<>();
             for (Long productId : data.keySet()) {
                 DProductDescription description = data.get(productId);
                 productMap.get(productId).setDescription(description);
+                if (!Strings.isNullOrEmpty(description.getVwdId())) {
+                    vwdIssueId.add(description.getVwdId());
+                    productMapByIssue.put(description.getVwdId(), productMap.get(productId));
+                }
             }
+
             inactiveComponents.remove(DESCRIPTION);
+            if (!vwdIssueId.isEmpty()) {
+                degiro.subscribeToPrice(vwdIssueId);
+            }
         }
 
     }

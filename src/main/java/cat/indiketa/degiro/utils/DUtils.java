@@ -426,7 +426,7 @@ public class DUtils {
 
     public static List<DPrice> convert(List<DRawVwdPrice> data) {
 
-        Set<Long> issues = new HashSet<>(100);
+        Set<String> issues = new HashSet<>(100);
         Map<String, String> dataMap = new HashMap<>(data.size());
 
         if (data != null) {
@@ -434,7 +434,7 @@ public class DUtils {
 
                 if (Strings.nullToEmpty(dRawVwdPrice.getM()).equals("a_req")) {
                     String firstVal = dRawVwdPrice.getV().get(0);
-                    issues.add(Long.parseLong(firstVal.substring(0, firstVal.indexOf("."))));
+                    issues.add(firstVal.substring(0, firstVal.lastIndexOf(".")));
 
                 }
 
@@ -452,7 +452,7 @@ public class DUtils {
 
         List<DPrice> prices = new ArrayList<>(issues.size());
 
-        for (Long issue : issues) {
+        for (String issue : issues) {
             DPrice price = new DPrice();
             price.setIssueId(issue);
             price.setBid(Doubles.tryParse(getData(issue, "BidPrice", dataMap)));
@@ -482,7 +482,7 @@ public class DUtils {
 
     }
 
-    private static String getData(long issue, String name, Map<String, String> dataMap) {
+    private static String getData(String issue, String name, Map<String, String> dataMap) {
 
         String retVal = "";
 

@@ -72,7 +72,7 @@ public class DeGiroImpl implements DeGiro {
     private long pollingInterval = TimeUnit.SECONDS.toMillis(15);
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
-    private final Map<Long, Long> subscribedVwdIssues;
+    private final Map<String, Long> subscribedVwdIssues;
     private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
 
@@ -267,7 +267,7 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public synchronized void subscribeToPrice(Collection<Long> vwdIssueId) throws DeGiroException {
+    public synchronized void subscribeToPrice(Collection<String> vwdIssueId) throws DeGiroException {
 
         if (priceListener == null) {
             throw new DeGiroException("PriceListener not set");
@@ -275,7 +275,7 @@ public class DeGiroImpl implements DeGiro {
 
         try {
 
-            for (Long issueId : vwdIssueId) {
+            for (String issueId : vwdIssueId) {
                 subscribedVwdIssues.put(issueId, null);
             }
 
@@ -310,7 +310,7 @@ public class DeGiroImpl implements DeGiro {
     private String generatePriceRequestPayload() {
 
         String requestedIssues = "";
-        for (Long issueId : subscribedVwdIssues.keySet()) {
+        for (String issueId : subscribedVwdIssues.keySet()) {
             Long last = subscribedVwdIssues.get(issueId);
             if (last == null || last > pollingInterval) {
                 requestedIssues += "req(X.BidPrice);req(X.AskPrice);req(X.LastPrice);req(X.LastTime);".replace("X", issueId + "");

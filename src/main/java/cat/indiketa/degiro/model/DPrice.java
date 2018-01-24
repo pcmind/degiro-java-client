@@ -9,18 +9,18 @@ import java.util.Objects;
  */
 public class DPrice {
 
-    private long issueId;
+    private String issueId;
     private Double bid;
     private Double ask;
     private Double last;
     private Date lastTime;
     private String vwdProductName;
 
-    public long getIssueId() {
+    public String getIssueId() {
         return issueId;
     }
 
-    public void setIssueId(long issueId) {
+    public void setIssueId(String issueId) {
         this.issueId = issueId;
     }
 
