@@ -26,6 +26,7 @@ import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
+import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -55,14 +56,15 @@ public class DUtils {
     private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
+    private static final Gson GSON = new Gson();
 
-    public static DPortfolioProducts convert(DRawPortfolio rawPortfolio) {
+    public static DPortfolioProducts convert(DRawPortfolio rawPortfolio, String currency) {
         DPortfolioProducts portfolio = new DPortfolioProducts();
         List<DPortfolioProduct> active = new LinkedList<>();
         List<DPortfolioProduct> inactive = new LinkedList<>();
 
         for (Value value : rawPortfolio.getPortfolio().getValue()) {
-            DPortfolioProduct productRow = convertProduct(value);
+            DPortfolioProduct productRow = convertProduct(value, currency);
 
             if (productRow.getSize() == 0) {
                 inactive.add(productRow);
@@ -126,7 +128,7 @@ public class DUtils {
         return portfolioSummary;
     }
 
-    public static DPortfolioProduct convertProduct(Value row) {
+    public static DPortfolioProduct convertProduct(Value row, String currency) {
         DPortfolioProduct productRow = new DPortfolioProduct();
 
         for (Value_ value : row.getValue()) {
@@ -138,7 +140,6 @@ public class DUtils {
                 switch (value.getName()) {
                     case "id":
                     case "size":
-                    case "change":
                     case "contractSize":
                         long longValue = (long) (double) value.getValue();
                         DPortfolioProduct.class.getMethod(methodName, long.class).invoke(productRow, longValue);
@@ -158,13 +159,19 @@ public class DUtils {
                         DPortfolioProduct.class.getMethod(methodName, boolean.class).invoke(productRow, booleanValue);
                         break;
                     case "price":
+                    case "change":
                     case "value":
                     case "closePrice":
                         BigDecimal bdValue = new BigDecimal((double) value.getValue());
-                        if (bdValue.scale() > 4) {
+                        if (!value.getName().equals("change") && bdValue.scale() > 4) {
                             bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
                         }
                         DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, bdValue);
+                        break;
+                    case "todayPlBase":
+                    case "plBase":
+                        Map values = (Map) value.getValue();
+                        DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, new BigDecimal(values.get("EUR").toString()));
                         break;
 
                 }

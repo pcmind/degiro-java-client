@@ -1,6 +1,7 @@
 package cat.indiketa.degiro.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -36,8 +37,10 @@ public class DPortfolioProducts {
         protected String product;
         protected long size;
         protected BigDecimal price;
-        protected long change;
+        protected BigDecimal realPrice;
+        protected BigDecimal change;
         protected BigDecimal value;
+        protected BigDecimal realValue;
         protected Date lastUpdate;
         protected String currency;
         protected String exchangeBriefCode;
@@ -46,6 +49,8 @@ public class DPortfolioProducts {
         protected String productCategory;
         protected boolean tradable;
         protected BigDecimal closePrice;
+        protected BigDecimal plBase;
+        protected BigDecimal todayPlBase;
 
         public long getId() {
             return id;
@@ -69,22 +74,32 @@ public class DPortfolioProducts {
 
         public void setSize(long size) {
             this.size = size;
+            calcRealPrice();
         }
 
         public BigDecimal getPrice() {
             return price;
         }
 
+        public void calcRealPrice() {
+            if (price != null && change != null) {
+                int scale = price.scale();
+                realPrice = price.subtract(price.multiply(change)).setScale(scale, RoundingMode.HALF_UP);
+                realValue = realPrice.multiply(new BigDecimal(size));
+            }
+        }
+
         public void setPrice(BigDecimal price) {
             this.price = price;
         }
 
-        public long getChange() {
+        public BigDecimal getChange() {
             return change;
         }
 
-        public void setChange(long change) {
+        public void setChange(BigDecimal change) {
             this.change = change;
+            calcRealPrice();
         }
 
         public BigDecimal getValue() {
@@ -93,6 +108,7 @@ public class DPortfolioProducts {
 
         public void setValue(BigDecimal value) {
             this.value = value;
+            calcRealPrice();
         }
 
         public Date getLastUpdate() {
@@ -158,23 +174,57 @@ public class DPortfolioProducts {
         public void setClosePrice(BigDecimal closePrice) {
             this.closePrice = closePrice;
         }
-        
+
+        public BigDecimal getPlBase() {
+            return plBase;
+        }
+
+        public void setPlBase(BigDecimal plBase) {
+            this.plBase = plBase;
+        }
+
+        public BigDecimal getTodayPlBase() {
+            return todayPlBase;
+        }
+
+        public void setTodayPlBase(BigDecimal todayPlBase) {
+            this.todayPlBase = todayPlBase;
+        }
+
+        public BigDecimal getRealPrice() {
+            return realPrice;
+        }
+
+        public void setRealPrice(BigDecimal realPrice) {
+            this.realPrice = realPrice;
+        }
+
+        public BigDecimal getRealValue() {
+            return realValue;
+        }
+
+        public void setRealValue(BigDecimal realValue) {
+            this.realValue = realValue;
+        }
+
         @Override
         public int hashCode() {
-            int hash = 7;
-            hash = 53 * hash + (int) (this.id ^ (this.id >>> 32));
-            hash = 53 * hash + Objects.hashCode(this.product);
-            hash = 53 * hash + (int) (this.size ^ (this.size >>> 32));
-            hash = 53 * hash + Objects.hashCode(this.price);
-            hash = 53 * hash + (int) (this.change ^ (this.change >>> 32));
-            hash = 53 * hash + Objects.hashCode(this.value);
-            hash = 53 * hash + Objects.hashCode(this.currency);
-            hash = 53 * hash + Objects.hashCode(this.exchangeBriefCode);
-            hash = 53 * hash + (int) (this.contractSize ^ (this.contractSize >>> 32));
-            hash = 53 * hash + (this.closedToday ? 1 : 0);
-            hash = 53 * hash + Objects.hashCode(this.productCategory);
-            hash = 53 * hash + (this.tradable ? 1 : 0);
-            hash = 53 * hash + Objects.hashCode(this.closePrice);
+            int hash = 3;
+            hash = 17 * hash + (int) (this.id ^ (this.id >>> 32));
+            hash = 17 * hash + Objects.hashCode(this.product);
+            hash = 17 * hash + (int) (this.size ^ (this.size >>> 32));
+            hash = 17 * hash + Objects.hashCode(this.price);
+            hash = 17 * hash + Objects.hashCode(this.change);
+            hash = 17 * hash + Objects.hashCode(this.value);
+            hash = 17 * hash + Objects.hashCode(this.currency);
+            hash = 17 * hash + Objects.hashCode(this.exchangeBriefCode);
+            hash = 17 * hash + (int) (this.contractSize ^ (this.contractSize >>> 32));
+            hash = 17 * hash + (this.closedToday ? 1 : 0);
+            hash = 17 * hash + Objects.hashCode(this.productCategory);
+            hash = 17 * hash + (this.tradable ? 1 : 0);
+            hash = 17 * hash + Objects.hashCode(this.closePrice);
+            hash = 17 * hash + Objects.hashCode(this.plBase);
+            hash = 17 * hash + Objects.hashCode(this.todayPlBase);
             return hash;
         }
 
@@ -229,10 +279,14 @@ public class DPortfolioProducts {
             if (!Objects.equals(this.closePrice, other.closePrice)) {
                 return false;
             }
+            if (!Objects.equals(this.plBase, other.plBase)) {
+                return false;
+            }
+            if (!Objects.equals(this.todayPlBase, other.todayPlBase)) {
+                return false;
+            }
             return true;
         }
-
-
 
     }
 

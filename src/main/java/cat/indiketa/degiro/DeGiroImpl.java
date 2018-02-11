@@ -76,6 +76,10 @@ public class DeGiroImpl implements DeGiro {
     private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
 
+    private long portfolioSummaryLastUpdate = 0;
+    private long portfolioLastUpdate = 0;
+    private String currency = "EUR";
+
     protected DeGiroImpl(DCredentials credentials, DSession session) {
         this.session = session;
         this.credentials = credentials;
@@ -98,9 +102,11 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "portfolio=0", null);
-            DRawPortfolio rawPortfolio = gson.fromJson(getResponseData(response), DRawPortfolio.class);
-            portfolio = DUtils.convert(rawPortfolio);
+            DResponse response = comm.getData(session, "portfolio=" + portfolioLastUpdate, null);
+            String data = getResponseData(response);
+            DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
+            portfolioLastUpdate = rawPortfolio.getPortfolio().getLastUpdated();
+            portfolio = DUtils.convert(rawPortfolio, currency);
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
@@ -114,8 +120,10 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "totalPortfolio=0", null);
-            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(getResponseData(response), DRawPortfolioSummary.class);
+            DResponse response = comm.getData(session, "totalPortfolio=" + portfolioSummaryLastUpdate, null);
+            String data = getResponseData(response);
+            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
+            portfolioSummaryLastUpdate = rawPortfolioSummary.getTotalPortfolio().getLastUpdated();
             portfolioSummary = DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio());
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
@@ -227,7 +235,7 @@ public class DeGiroImpl implements DeGiro {
 
     private void ensureVwdSession() throws DeGiroException {
         ensureLogged();
-        if (session.getVwdSession() == null || session.getLastVwdSessionUsed() == 0 || (System.currentTimeMillis() - session.getLastVwdSessionUsed()) > TimeUnit.SECONDS.toMillis(30)) {
+        if (session.getVwdSession() == null || session.getLastVwdSessionUsed() == 0 || (System.currentTimeMillis() - session.getLastVwdSessionUsed()) > TimeUnit.SECONDS.toMillis(15)) {
             DLog.DEGIRO.info("Renewing VWD session");
             getVwdSession();
             if (!subscribedVwdIssues.isEmpty()) {
@@ -551,6 +559,14 @@ public class DeGiroImpl implements DeGiro {
 
     public DSession getSession() {
         return session;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     private class DPriceTimerTask extends TimerTask {

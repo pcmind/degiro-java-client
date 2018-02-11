@@ -236,4 +236,8 @@ public class DEngine {
         return eventBus;
     }
 
+    public void register(Object eventReceiver) {
+        eventBus.register(eventReceiver);
+    }
+
 }
