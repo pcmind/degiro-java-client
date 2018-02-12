@@ -7,9 +7,9 @@ import java.io.File;
  * @author indiketa
  */
 public class DEngineConfig {
-    
+
     public File getDataDirectory() {
-        return new File("/home/casa/degiro");
+        return new File("/home/ecatala/degiro");
     }
 
     public int getProductPriceHistoryCount() {
@@ -20,12 +20,9 @@ public class DEngineConfig {
     public int getProductPriceHistoryMinInterval() {
         return 5;
     }
-    
 
     public int getPortfolioRefreshInterval() {
         return 5;
     }
-    
-    
 
 }

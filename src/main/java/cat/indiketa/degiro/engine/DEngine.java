@@ -3,6 +3,7 @@ package cat.indiketa.degiro.engine;
 import cat.indiketa.degiro.DeGiro;
 import cat.indiketa.degiro.DeGiroFactory;
 import cat.indiketa.degiro.engine.event.DSummaryChanged;
+import cat.indiketa.degiro.engine.model.Product;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPortfolioProducts;
@@ -41,8 +42,8 @@ public class DEngine {
     private final DeGiro degiro;
     private DEngineConfig config;
 
-    private final Map<Long, DProduct> productMap;
-    private final Map<String, DProduct> productMapByIssue;
+    private final Map<Long, Product> productMap;
+    private final Map<String, Product> productMapByIssue;
 
     private Timer portfolioTimer;
     private Timer portfolioSummaryTimer;
@@ -74,8 +75,7 @@ public class DEngine {
             @Override
             public void priceChanged(DPrice price) {
                 DEngine.this.inactiveComponents.remove(PRICES);
-                DLog.ENGINE.fatal("Price issueId:" + price.getIssueId());
-                DEngine.this.productMapByIssue.get(price.getIssueId()).setLastPrice(price);
+                DEngine.this.productMapByIssue.get(price.getIssueId()).adopt(price);
             }
         });
         this.inactiveComponents = new HashSet<>();
@@ -142,7 +142,7 @@ public class DEngine {
         if (products != null) {
             for (DPortfolioProduct product : products) {
                 if (productMap.containsKey(product.getId())) {
-                    productMap.get(product.getId()).setProductStatus(product);
+                    productMap.get(product.getId()).adopt(product);
                 } else {
                     registerProduct(product);
                     oneRegistered = true;
@@ -155,18 +155,17 @@ public class DEngine {
     }
 
     private void registerProduct(DPortfolioProduct add) {
-        DProduct product = new DProduct(this);
-        product.setProductStatus(add);
-        productMap.put(add.getId(), product);
-
+        Product pro = new Product(this);
+        pro.adopt(add);
+        productMap.put(add.getId(), pro);
     }
 
     private void fetchDescriptions() throws DeGiroException {
 
         List<Long> productIds = new LinkedList<>();
-        for (DProduct product : productMap.values()) {
-            if (product.getDescription() == null) {
-                productIds.add(product.getProductStatus().getId());
+        for (Product product : productMap.values()) {
+            if (product.getId() != 0) {
+                productIds.add(product.getId());
             }
         }
 
@@ -177,7 +176,7 @@ public class DEngine {
             List<String> vwdIssueId = new LinkedList<>();
             for (Long productId : data.keySet()) {
                 DProductDescription description = data.get(productId);
-                productMap.get(productId).setDescription(description);
+                productMap.get(productId).adopt(description);
                 if (!Strings.isNullOrEmpty(description.getVwdId())) {
                     vwdIssueId.add(description.getVwdId());
                     productMapByIssue.put(description.getVwdId(), productMap.get(productId));
@@ -222,13 +221,11 @@ public class DEngine {
         return lastSummary;
     }
 
-    public List<DProduct> getPortfolio() {
-        List<DProduct> products = new LinkedList<>();
-
-        for (DProduct value : productMap.values()) {
+    public List<Product> getPortfolio() {
+        List<Product> products = new LinkedList<>();
+        for (Product value : productMap.values()) {
             products.add(value);
         }
-
         return products;
     }
 
