@@ -9,6 +9,7 @@ import cat.indiketa.degiro.model.DOrderConfirmation;
 import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioSummary;
+import cat.indiketa.degiro.model.DPriceHistory;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
@@ -33,7 +34,7 @@ public interface DeGiro {
     List<DOrder> getOrders() throws DeGiroException;
 
     DPortfolioProducts getPortfolio() throws DeGiroException;
-    
+
     DPortfolioSummary getPortfolioSummary() throws DeGiroException;
 
     DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException;
@@ -57,5 +58,7 @@ public interface DeGiro {
     DPlacedOrder deleteOrder(String orderId) throws DeGiroException;
 
     DPlacedOrder updateOrder(DOrder order, BigDecimal limit, BigDecimal stop) throws DeGiroException;
+
+    DPriceHistory getPriceHistory(Long issueId) throws DeGiroException;
 
 }

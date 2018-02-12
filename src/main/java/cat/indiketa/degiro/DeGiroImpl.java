@@ -25,6 +25,7 @@ import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DPriceHistory;
 import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
@@ -49,7 +50,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -517,6 +517,23 @@ public class DeGiroImpl implements DeGiro {
 
         return placedOrder;
 
+    }
+
+    @Override
+    public DPriceHistory getPriceHistory(Long issueId) throws DeGiroException {
+
+        DPriceHistory priceHistory = null;
+
+        ensureLogged();
+        try {
+
+            DResponse response = comm.getGraph(session, "series=price%3Aissueid%3A" + issueId);
+            priceHistory = gson.fromJson(getResponseData(response), DPriceHistory.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while retrieving price data", e);
+        }
+
+        return priceHistory;
     }
 
     private Map orderToMap(DNewOrder order) {

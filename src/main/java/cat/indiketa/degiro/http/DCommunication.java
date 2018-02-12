@@ -25,6 +25,8 @@ public class DCommunication extends DHttpManager {
 
     private final Gson gson;
     private final BasicHttpContext context;
+    // Extracted from: https://charting.vwdservices.com/hchart/v1/deGiro/api.js?culture=en&userToken=XXXXXX&tz=Europe/Madrid
+    private static final String CHARTING_URL = "https://charting.vwdservices.com/hchart/v1/deGiro/data.js";
 
     public DCommunication(DSession session) {
         super(session);
@@ -88,6 +90,21 @@ public class DCommunication extends DHttpManager {
 
     public DResponse getData(DSession session, String params, Object data) throws IOException {
         return getUrlData(session.getConfig().getTradingUrl() + "v5/update/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId(), "?" + params, data);
+    }
+
+    public DResponse getGraph(DSession session, String params) throws IOException {
+        /*
+requestid:  1
+resolution: PT1S
+culture:    en-US
+period:     P1D
+series:     issueid:280172443
+format:     json
+callback:   vwd.hchart.seriesRequestManager.sync_response
+userToken:  91940
+tz:         Europe/Madrid
+         */
+        return getUrlData(CHARTING_URL, "?requestid=1&resolution=PT1S&culture=en-US&period=P1D&" + params + "&format=json&userToken=" + session.getConfig().getClientId() + "&tz=Europe%2FMadrid", null);
     }
 
     public static class DResponse {
