@@ -69,7 +69,7 @@ public class DeGiroImpl implements DeGiro {
     private final DSession session;
     private final Gson gson;
     private DPriceListener priceListener;
-    private long pollingInterval = TimeUnit.SECONDS.toMillis(15);
+    private long pollingInterval = TimeUnit.SECONDS.toMillis(1);
     private Timer pricePoller = null;
     private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
     private final Map<String, Long> subscribedVwdIssues;
@@ -275,6 +275,18 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
+    public synchronized void unsubscribeToPrice(String vwdIssueId) {
+        subscribedVwdIssues.remove(vwdIssueId);
+    }
+
+    @Override
+    public synchronized void subscribeToPrice(String vwdIssueId) throws DeGiroException {
+        ArrayList<String> list = new ArrayList<>(1);
+        list.add(vwdIssueId);
+        subscribeToPrice(list);
+    }
+
+    @Override
     public synchronized void subscribeToPrice(Collection<String> vwdIssueId) throws DeGiroException {
 
         if (priceListener == null) {
@@ -284,7 +296,9 @@ public class DeGiroImpl implements DeGiro {
         try {
 
             for (String issueId : vwdIssueId) {
-                subscribedVwdIssues.put(issueId, null);
+                if (!subscribedVwdIssues.containsKey(issueId)) {
+                    subscribedVwdIssues.put(issueId, null);
+                }
             }
 
             requestPriceUpdate();

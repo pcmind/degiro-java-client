@@ -2,8 +2,8 @@ package cat.indiketa.degiro.engine;
 
 import cat.indiketa.degiro.DeGiro;
 import cat.indiketa.degiro.DeGiroFactory;
+import cat.indiketa.degiro.engine.event.DProductChanged;
 import cat.indiketa.degiro.engine.event.DSummaryChanged;
-import cat.indiketa.degiro.engine.model.Product;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DPortfolioProducts;
@@ -80,7 +80,7 @@ public class DEngine {
         });
         this.inactiveComponents = new HashSet<>();
         this.inactiveComponents.add(PORTFOLIO);
-        this.inactiveComponents.add(SUMMARY);
+//        this.inactiveComponents.add(SUMMARY);
         this.inactiveComponents.add(DESCRIPTION);
         this.inactiveComponents.add(PRICES);
     }
@@ -89,7 +89,7 @@ public class DEngine {
 
         DLog.ENGINE.info("Initializing control plane...");
         startPortfolioTimer();
-        startPortfolioSummaryTimer();
+//        startPortfolioSummaryTimer();
 
         while (!inactiveComponents.isEmpty()) {
             DLog.ENGINE.info("API client created, waiting for the control plane to become ready. Remaining: [" + Joiner.on(",").join(inactiveComponents) + "]");
@@ -135,7 +135,7 @@ public class DEngine {
 
     }
 
-    private boolean mergeProducts(List<DPortfolioProduct> products) {
+    private boolean mergeProducts(List<DPortfolioProduct> products) throws DeGiroException {
 
         boolean oneRegistered = false;
 
@@ -154,10 +154,11 @@ public class DEngine {
         return oneRegistered;
     }
 
-    private void registerProduct(DPortfolioProduct add) {
+    private void registerProduct(DPortfolioProduct add) throws DeGiroException {
         Product pro = new Product(this);
         pro.adopt(add);
         productMap.put(add.getId(), pro);
+        eventBus.post(new DProductChanged(pro));
     }
 
     private void fetchDescriptions() throws DeGiroException {
@@ -178,8 +179,10 @@ public class DEngine {
                 DProductDescription description = data.get(productId);
                 productMap.get(productId).adopt(description);
                 if (!Strings.isNullOrEmpty(description.getVwdId())) {
-                    vwdIssueId.add(description.getVwdId());
                     productMapByIssue.put(description.getVwdId(), productMap.get(productId));
+                    if (productMap.get(productId).getQty() != 0) {
+                        vwdIssueId.add(description.getVwdId());
+                    }
                 }
             }
 
@@ -226,6 +229,7 @@ public class DEngine {
         for (Product value : productMap.values()) {
             products.add(value);
         }
+        System.out.println(products.size());
         return products;
     }
 
@@ -235,6 +239,10 @@ public class DEngine {
 
     public void register(Object eventReceiver) {
         eventBus.register(eventReceiver);
+    }
+
+    public DeGiro getDegiro() {
+        return degiro;
     }
 
 }

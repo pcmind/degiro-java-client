@@ -526,6 +526,37 @@ public class DUtils {
         }
     }
 
+    public static class BigDecimalTypeAdapter extends TypeAdapter<BigDecimal> {
+
+        @Override
+        public BigDecimal read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            BigDecimal bd = null;
+
+            if (!Strings.isNullOrEmpty(value)) {
+                bd = new BigDecimal(value);
+            }
+
+            return bd;
+
+        }
+
+        @Override
+        public void write(JsonWriter writer, BigDecimal value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+
+            writer.value(value.toPlainString());
+        }
+    }
+
     public static class OrderTimeTypeAdapter extends TypeAdapter<DOrderTime> {
 
         @Override

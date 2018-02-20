@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 casa.
+ * Copyright 2018 ecatala.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package cat.indiketa.degiro.engine.event;
+package cat.indiketa.degiro.engine.strategy;
 
-import cat.indiketa.degiro.engine.Product;
+import cat.indiketa.degiro.engine.Strategy;
 
 /**
  *
- * @author indiketa
+ * @author ecatala
  */
-public class DProductChanged {
-
-    private final Product product;
+public class DynamicStoplossStrategy extends Strategy {
     
-
-    public DProductChanged(Product product) {
-        this.product = product;
-    }
-
-    public Product getProduct() {
-        return product;
-    }
-
-    
-    
-
 }

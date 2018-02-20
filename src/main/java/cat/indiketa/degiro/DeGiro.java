@@ -43,6 +43,10 @@ public interface DeGiro {
 
     void setPricePollingInterval(int duration, TimeUnit unit) throws DeGiroException;
 
+    void unsubscribeToPrice(String vwdIssueId) ;
+    
+    void subscribeToPrice(String vwdIssueId) throws DeGiroException;
+
     void subscribeToPrice(Collection<String> vwdIssueId) throws DeGiroException;
 
     void clearPriceSubscriptions();
