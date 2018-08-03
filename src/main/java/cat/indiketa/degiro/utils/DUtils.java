@@ -141,7 +141,7 @@ public class DUtils {
                     case "id":
                     case "size":
                     case "contractSize":
-                        long longValue = (long) (double) value.getValue();
+                        long longValue = Double.valueOf(value.getValue().toString()).longValue();
                         DPortfolioProduct.class.getMethod(methodName, long.class).invoke(productRow, longValue);
                         break;
                     case "product":
@@ -171,7 +171,7 @@ public class DUtils {
                     case "todayPlBase":
                     case "plBase":
                         Map values = (Map) value.getValue();
-                        DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, new BigDecimal(values.get("EUR").toString()));
+                        DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, new BigDecimal(values.get(currency).toString()));
                         break;
 
                 }
