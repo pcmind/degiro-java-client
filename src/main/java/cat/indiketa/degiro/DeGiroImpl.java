@@ -1,35 +1,29 @@
 package cat.indiketa.degiro;
 
-import cat.indiketa.degiro.utils.DUtils;
-import cat.indiketa.degiro.utils.DCredentials;
-import cat.indiketa.degiro.session.DSession;
+import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
 import cat.indiketa.degiro.exceptions.DUnauthorizedException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
-import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
-import cat.indiketa.degiro.http.DCommunication;
-import cat.indiketa.degiro.http.DCommunication.DResponse;
+import cat.indiketa.degiro.http.DResponse;
+import cat.indiketa.degiro.http.IDCommunication;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
-import cat.indiketa.degiro.model.DLogin;
-import cat.indiketa.degiro.model.DOrders;
-import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DNewOrder;
 import cat.indiketa.degiro.model.DOrder;
-import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderConfirmation;
-import cat.indiketa.degiro.model.DOrderTime;
-import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPlacedOrder;
+import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceHistory;
 import cat.indiketa.degiro.model.DPriceListener;
+import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
-import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.model.DTransactions;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
@@ -37,62 +31,56 @@ import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
 import cat.indiketa.degiro.model.raw.DRawVwdPrice;
+import cat.indiketa.degiro.session.DSession;
+import cat.indiketa.degiro.utils.DCredentials;
+import cat.indiketa.degiro.utils.DUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
 
 /**
- *
  * @author indiketa
  */
 public class DeGiroImpl implements DeGiro {
 
+    private final DeGiroHost degiro;
     private final DCredentials credentials;
-    private final DCommunication comm;
+    private final TrackConnection comm;
     private final DSession session;
-    private final Gson gson;
-    private DPriceListener priceListener;
-    private long pollingInterval = TimeUnit.SECONDS.toMillis(1);
-    private Timer pricePoller = null;
-    private static final String BASE_TRADER_URL = "https://trader.degiro.nl";
+    private final DJsonDecoder gson;
     private final Map<String, Long> subscribedVwdIssues;
     private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
 
+    private DPriceListener priceListener;
     private long portfolioSummaryLastUpdate = 0;
     private long portfolioLastUpdate = 0;
     private String currency = "EUR";
+    private long pollingInterval = TimeUnit.SECONDS.toMillis(5);
+    private Timer pricePoller = null;
 
-    protected DeGiroImpl(DCredentials credentials, DSession session) {
+    public DeGiroImpl(DeGiroHost degiro, DCredentials credentials, DSession session, IDCommunication comm) {
+        this.degiro = degiro;
         this.session = session;
         this.credentials = credentials;
-        this.comm = new DCommunication(this.session);
-        GsonBuilder builder = new GsonBuilder();
-        builder.registerTypeAdapter(DProductType.class, new DUtils.ProductTypeAdapter());
-        builder.registerTypeAdapter(DOrderTime.class, new DUtils.OrderTimeTypeAdapter());
-        builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
-        builder.registerTypeAdapter(DOrderAction.class, new DUtils.OrderActionTypeAdapter());
-        builder.registerTypeAdapter(Date.class, new DUtils.DateTypeAdapter());
-        this.gson = builder.create();
+        this.comm = new TrackConnection(comm);
+        this.gson = new DJsonDecoder();
         this.subscribedVwdIssues = new HashMap<>(500);
-
     }
 
     @Override
@@ -102,7 +90,7 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "portfolio=" + portfolioLastUpdate, null);
+            DResponse response = getData("portfolio=" + portfolioLastUpdate, null);
             String data = getResponseData(response);
             DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
             portfolioLastUpdate = rawPortfolio.getPortfolio().getLastUpdated();
@@ -120,7 +108,7 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "totalPortfolio=" + portfolioSummaryLastUpdate, null);
+            DResponse response = getData("totalPortfolio=" + portfolioSummaryLastUpdate, null);
             String data = getResponseData(response);
             DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
             portfolioSummaryLastUpdate = rawPortfolioSummary.getTotalPortfolio().getLastUpdated();
@@ -138,7 +126,7 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "cashFunds=0", null);
+            DResponse response = getData("cashFunds=0", null);
             DRawCashFunds rawCashFunds = gson.fromJson(getResponseData(response), DRawCashFunds.class);
             cashFunds = DUtils.convert(rawCashFunds);
         } catch (IOException e) {
@@ -154,7 +142,7 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "orders=0", null);
+            DResponse response = getData("orders=0", null);
             DRawOrders rawOrders = gson.fromJson(getResponseData(response), DRawOrders.class);
             orders = DUtils.convert(rawOrders);
         } catch (IOException e) {
@@ -170,7 +158,7 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            DResponse response = comm.getData(session, "transactions=0", null);
+            DResponse response = getData("transactions=0", null);
             DRawTransactions rawTransactions = gson.fromJson(getResponseData(response), DRawTransactions.class);
             transactions = DUtils.convert(rawTransactions);
         } catch (IOException e) {
@@ -211,7 +199,7 @@ public class DeGiroImpl implements DeGiro {
             login.setUsername(credentials.getUsername());
             login.setPassword(credentials.getPassword());
 
-            DResponse response = comm.getUrlData(BASE_TRADER_URL, "/login/secure/login", login);
+            DResponse response = comm.getUrlData(degiro.getBaseUrl(), "/login/secure/login", login);
 
             if (response.getStatus() != 200) {
                 if (response.getStatus() == 400) {
@@ -221,7 +209,7 @@ public class DeGiroImpl implements DeGiro {
                 }
             }
 
-            response = comm.getUrlData(BASE_TRADER_URL, "/login/secure/config", null);
+            response = comm.getUrlData(degiro.getBaseUrl(), "/login/secure/config", null);
             session.setConfig(gson.fromJson(getResponseData(response), DConfig.class));
 
             response = comm.getUrlData(session.getConfig().getPaUrl(), "client?sessionId=" + session.getJSessionId(), null);
@@ -251,8 +239,8 @@ public class DeGiroImpl implements DeGiro {
             List<Header> headers = new ArrayList<>(1);
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
             HashMap<String, String> data = new HashMap();
-            data.put("referrer", "https://trader.degiro.nl");
-            DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/request_session?version=1.0.20170315&userToken=" + session.getClient().getId(), data, headers);
+            data.put("referrer", degiro.getBaseUrl());
+            DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/request_session?version=1.0.20170315&userToken=" + session.getClient().getId(), data, headers);
             HashMap map = gson.fromJson(getResponseData(response), HashMap.class);
             session.setVwdSession((String) map.get("sessionId"));
             session.setLastVwdSessionUsed(System.currentTimeMillis());
@@ -323,7 +311,7 @@ public class DeGiroImpl implements DeGiro {
         HashMap<String, String> data = new HashMap();
         data.put("controlData", generatePriceRequestPayload());
 
-        DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), data, headers);
+        DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), data, headers);
         getResponseData(response);
         session.setLastVwdSessionUsed(System.currentTimeMillis());
 
@@ -350,7 +338,7 @@ public class DeGiroImpl implements DeGiro {
             List<Header> headers = new ArrayList<>(1);
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
 
-            DResponse response = comm.getUrlData("https://degiro.quotecast.vwdservices.com/CORS", "/" + session.getVwdSession(), null, headers);
+            DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), null, headers);
             List<DRawVwdPrice> data = gson.fromJson(getResponseData(response), rawPriceData);
 
             List<DPrice> prices = DUtils.convert(data);
@@ -541,13 +529,32 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
         try {
 
-            DResponse response = comm.getGraph(session, "series=price%3Aissueid%3A" + issueId);
+            DResponse response = getGraph("series=price%3Aissueid%3A" + issueId);
             priceHistory = gson.fromJson(getResponseData(response), DPriceHistory.class);
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving price data", e);
         }
 
         return priceHistory;
+    }
+
+    private DResponse getGraph(String params) throws IOException {
+                /*
+requestid:  1
+resolution: PT1S
+culture:    en-US
+period:     P1D
+series:     issueid:280172443
+format:     json
+callback:   vwd.hchart.seriesRequestManager.sync_response
+userToken:  91940
+tz:         Europe/Madrid
+         */
+        return comm.getUrlData(degiro.getChartingUrl(), "?requestid=1&resolution=PT1S&culture=en-US&period=P1D&" + params + "&format=json&userToken=" + session.getConfig().getClientId() + "&tz=Europe%2FMadrid", null);
+    }
+
+    private DResponse getData(String params, Object data) throws IOException {
+        return comm.getUrlData(session.getConfig().getTradingUrl() + "v5/update/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId(), "?" + params, data);
     }
 
     private Map orderToMap(DNewOrder order) {
@@ -611,6 +618,25 @@ public class DeGiroImpl implements DeGiro {
             }
         }
 
+    }
+
+    private static final class TrackConnection implements IDCommunication {
+        private final IDCommunication delegate;
+        private long lastSuccess = 0;
+
+        public TrackConnection(IDCommunication delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public DResponse getUrlData(String base, String uri, Object data, List<Header> headers, String method)
+                throws IOException {
+            final DResponse urlData = delegate.getUrlData(base, uri, data, headers, method);
+            if (urlData != null && urlData.getStatus() == 200) {
+                lastSuccess = System.nanoTime();
+            }
+            return urlData;
+        }
     }
 
 }

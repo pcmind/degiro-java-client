@@ -1,16 +1,10 @@
-package cat.indiketa.degiro.http;
+package cat.indiketa.degiro.http.impl;
 
-import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.log.DLog;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.config.ConnectionConfig;
@@ -32,6 +26,11 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
 
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+
 /**
  *
  * @author indiketa
@@ -40,7 +39,6 @@ public class DHttpManager {
 
     protected final CloseableHttpClient httpClient;
     protected final CookieStore cookieStore;
-    protected final DSession session;
 
     private static DInactiveConnectionManager inactiveConnections = null;
     private static final int DEFAULT_KEEP_ALIVE_TIMEOUT = 90;
@@ -49,9 +47,9 @@ public class DHttpManager {
     private static final int MAX_CONNECTIONS_PER_ROUTE = 20;
     private static final int TOTAL_MAX_CONNECTIONS = MAX_CONNECTIONS_PER_ROUTE * 27;
 
-    protected DHttpManager(DSession session) {
+    protected DHttpManager(BasicCookieStore cookieStore) {
+        this.cookieStore = cookieStore;
 
-        this.session = session;
 
         SSLConnectionSocketFactory sslSocketFactory = null;
         try {
@@ -108,8 +106,6 @@ public class DHttpManager {
                 .setTcpNoDelay(true)
                 .build();
 
-        cookieStore = new DCookieStore(session);
-
         httpClient = HttpClients.custom()
                 .setConnectionManager(cm)
                 .setDefaultRequestConfig(requestConfig)
@@ -120,7 +116,7 @@ public class DHttpManager {
 
     }
 
-    public HttpClient getClient() {
+    public CloseableHttpClient getClient() {
         return httpClient;
     }
 

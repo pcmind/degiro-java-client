@@ -3,15 +3,15 @@ package cat.indiketa.degiro.utils;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
+import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
+import cat.indiketa.degiro.model.DOrder;
+import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DOrders;
 import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioProducts.DPortfolioProduct;
-import cat.indiketa.degiro.model.DLastTransactions;
-import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
-import cat.indiketa.degiro.model.DOrder;
-import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DPortfolioSummary;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DProductType;
@@ -26,11 +26,11 @@ import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
-import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -56,7 +56,7 @@ public class DUtils {
     private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
-    private static final Gson GSON = new Gson();
+    private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     public static DPortfolioProducts convert(DRawPortfolio rawPortfolio, String currency) {
         DPortfolioProducts portfolio = new DPortfolioProducts();
@@ -662,4 +662,38 @@ public class DUtils {
         }
     }
 
+    public static boolean isNumeric(String strNum) {
+        return strNum.matches("\\d+");
+    }
+
+    public static class CalendarTypeAdapter extends TypeAdapter<Calendar> {
+        @Override
+        public void write(JsonWriter writer, Calendar value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+            writer.value(DATE_TIME_FORMAT.format(value));
+        }
+
+        @Override
+        public Calendar read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            Calendar d = null;
+            try {
+                final Date parse = DATE_TIME_FORMAT.parse(value);
+                final Calendar instance = Calendar.getInstance();
+                instance.setTime(parse);
+                return instance;
+            } catch (ParseException e) {
+                DLog.DEGIRO.warn("DateTime not parseable: " + value);
+            }
+            return d;
+        }
+    }
 }
