@@ -1,28 +1,13 @@
 package cat.indiketa.degiro.utils;
 
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DCashFunds;
+import cat.indiketa.degiro.model.*;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
-import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
-import cat.indiketa.degiro.model.DOrder;
-import cat.indiketa.degiro.model.DOrderAction;
-import cat.indiketa.degiro.model.DOrderTime;
-import cat.indiketa.degiro.model.DOrderType;
-import cat.indiketa.degiro.model.DOrders;
-import cat.indiketa.degiro.model.DPortfolioProducts;
 import cat.indiketa.degiro.model.DPortfolioProducts.DPortfolioProduct;
-import cat.indiketa.degiro.model.DPortfolioSummary;
-import cat.indiketa.degiro.model.DPrice;
-import cat.indiketa.degiro.model.DProductType;
-import cat.indiketa.degiro.model.raw.DRawCashFunds;
-import cat.indiketa.degiro.model.raw.DRawOrders;
-import cat.indiketa.degiro.model.raw.DRawPortfolio;
+import cat.indiketa.degiro.model.raw.*;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
-import cat.indiketa.degiro.model.raw.DRawPortfolio.Value_;
-import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
-import cat.indiketa.degiro.model.raw.DRawTransactions;
-import cat.indiketa.degiro.model.raw.DRawVwdPrice;
+import cat.indiketa.degiro.model.raw.DFieldValue;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
@@ -37,18 +22,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- *
  * @author indiketa
  */
 public class DUtils {
@@ -60,108 +36,113 @@ public class DUtils {
 
     public static DPortfolioProducts convert(DRawPortfolio rawPortfolio, String currency) {
         DPortfolioProducts portfolio = new DPortfolioProducts();
-        List<DPortfolioProduct> active = new LinkedList<>();
-        List<DPortfolioProduct> inactive = new LinkedList<>();
-
-        for (Value value : rawPortfolio.getPortfolio().getValue()) {
-            DPortfolioProduct productRow = convertProduct(value, currency);
-
-            if (productRow.getSize() == 0) {
-                inactive.add(productRow);
-            } else {
-                active.add(productRow);
+        final DRawPortfolio.Portfolio portfolio1 = rawPortfolio.getPortfolio();
+        portfolio.setLastUpdate(portfolio1.getLastUpdated());
+        for (Value value : portfolio1.getValue()) {
+            if(value.getIsRemoved()) {
+                portfolio.getRemoved().add(value.getId());
+            }else {
+                DPortfolioProduct productRow = convertProduct(value, currency);
+                if(value.getIsAdded()) {
+                    portfolio.getAdded().add(productRow);
+                }else{
+                    portfolio.getUpdates().add(productRow);
+                }
+                if(productRow.getId() == null) {
+                    productRow.setId(value.getId());
+                }
             }
         }
-
-        portfolio.setActive(active);
-        portfolio.setInactive(inactive);
-
         return portfolio;
 
     }
 
-    public static DPortfolioSummary convertPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row) {
+    public static DPortfolioSummaryUpdate convertPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row) {
+        final DPortfolioSummaryUpdate update = new DPortfolioSummaryUpdate();
+        update.setLastUpdated(row.getLastUpdated());
+        if(row.getValue() == null || row.getValue().isEmpty()) {
+            return update;
+        }
+        update.setAdded(row.getIsAdded());
         DPortfolioSummary portfolioSummary = new DPortfolioSummary();
 
-        for (Value_ value : row.getValue()) {
+        for (DFieldValue value : row.getValue()) {
 
             try {
 
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
 
                 switch (value.getName()) {
-
-                    case "portVal":
-                    case "cash":
-                    case "total":
-                    case "pl":
-                    case "plToday":
-                    case "freeSpace":
-                    case "reportFreeRuimte":
-                    case "reportMargin":
-                    case "reportPortfValue":
-                    case "reportCashBal":
-                    case "reportNetliq":
-                    case "reportOverallMargin":
-                    case "reportTotalLongVal":
-                    case "reportDeficit":
-                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
-                        if (bdValue.scale() > 4) {
-                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
-                        }
-                        DPortfolioSummary.class.getMethod(methodName, BigDecimal.class).invoke(portfolioSummary, bdValue);
+                    case "cashFundCompensationCurrency":
+                        final String value1 = (String) value.getValue();
+                        DPortfolioSummary.class.getMethod(methodName, String.class).invoke(portfolioSummary, value1);
                         break;
-                    case "reportCreationTime":
-                        try {
-                            portfolioSummary.setReportCreationTime(DATE_FORMAT2.parse((String) value.getValue()));
-                        } catch (ParseException e) {
-                            portfolioSummary.setReportCreationTime(HM_FORMAT.parse((String) value.getValue()));
+                    case "freeSpaceNew":
+                        final HashMap<String, BigDecimal> freeSpaceNew = new HashMap<>();
+                        for (Map.Entry<String, Double> stringDoubleEntry : ((Map<String, Double>) value.getValue())
+                                .entrySet()) {
+                            freeSpaceNew.put(stringDoubleEntry.getKey(), getBigDecimal(stringDoubleEntry.getValue()));
                         }
+                        portfolioSummary.setFreeSpaceNew(freeSpaceNew);
+                        break;
+                    case "cash":
+                    case "cashFundCompensation":
+                    case "cashFundCompensationWithdrawn":
+                    case "cashFundCompensationPending":
+                    case "todayNonProductFees":
+                    case "totalNonProductFees":
+                        BigDecimal bdValue = getBigDecimal(value.getValue());
+                        DPortfolioSummary.class.getMethod(methodName, BigDecimal.class).invoke(portfolioSummary, bdValue);
                         break;
 
                 }
-            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | ParseException | InvocationTargetException e) {
-                DLog.DEGIRO.error("Error while setting value of portfolioSummary", e);
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                DLog.DEGIRO.error("Error while setting value of portfolioSummary." + value.getName(), e);
             }
         }
+        update.setPortfolioSummary(portfolioSummary);
 
-        return portfolioSummary;
+        return update;
+    }
+
+    private static BigDecimal getBigDecimal(Object value1) {
+        BigDecimal bdValue = new BigDecimal((double) value1);
+        if (bdValue.scale() > 4) {
+            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
+        }
+        return bdValue;
     }
 
     public static DPortfolioProduct convertProduct(Value row, String currency) {
-        DPortfolioProduct productRow = new DPortfolioProduct();
+        DPortfolioProduct productRow = new DPortfolioProduct(currency);
 
-        for (Value_ value : row.getValue()) {
+        for (DFieldValue value : row.getValue()) {
 
             try {
-
                 String methodName = "set" + CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, value.getName());
 
                 switch (value.getName()) {
-                    case "id":
                     case "size":
-                    case "contractSize":
-                        long longValue = Double.valueOf(value.getValue().toString()).longValue();
-                        DPortfolioProduct.class.getMethod(methodName, long.class).invoke(productRow, longValue);
+                    case "averageFxRate":
+                        Long longValue = Double.valueOf(value.getValue().toString()).longValue();
+                        DPortfolioProduct.class.getMethod(methodName, Long.class).invoke(productRow, longValue);
                         break;
-                    case "product":
-                    case "currency":
-                    case "exchangeBriefCode":
-                    case "productCategory":
+                    case "id":
+                    case "positionType":
+                    case "accruedInteres":
                         String stringValue = (String) value.getValue();
                         DPortfolioProduct.class.getMethod(methodName, String.class).invoke(productRow, stringValue);
                         break;
                     case "lastUpdate":
                         break;
-                    case "closedToday":
-                    case "tradable":
-                        Boolean booleanValue = (Boolean) value.getValue();
-                        DPortfolioProduct.class.getMethod(methodName, boolean.class).invoke(productRow, booleanValue);
-                        break;
                     case "price":
-                    case "change":
                     case "value":
-                    case "closePrice":
+                    case "breakEvenPrice":
+                    case "portfolioValueCorrection":
+                    case "realizedProductPl":
+                    case "realizedFxPl":
+                    case "todayRealizedProductPl":
+                    case "todayRealizedFxPl":
                         BigDecimal bdValue = new BigDecimal((double) value.getValue());
                         if (!value.getName().equals("change") && bdValue.scale() > 4) {
                             bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
@@ -202,7 +183,7 @@ public class DUtils {
 
         DCashFund cashFund = new DCashFund();
 
-        for (Value_ value : row.getValue()) {
+        for (DFieldValue value : row.getValue()) {
 
             try {
 
@@ -218,10 +199,7 @@ public class DUtils {
                         DCashFund.class.getMethod(methodName, String.class).invoke(cashFund, stringValue);
                         break;
                     case "value":
-                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
-                        if (bdValue.scale() > 4) {
-                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
-                        }
+                        BigDecimal bdValue = getBigDecimal(value.getValue());
                         DCashFund.class.getMethod(methodName, BigDecimal.class).invoke(cashFund, bdValue);
                         break;
 
@@ -236,24 +214,31 @@ public class DUtils {
 
     public static DOrders convert(DRawOrders rawOrders) {
         DOrders orders = new DOrders();
-        List<DOrder> list = new LinkedList<>();
+        orders.setLastUpdate(rawOrders.orders.lastUpdated);
 
-        for (Value value : rawOrders.getOrders().getValue()) {
-            DOrder order = convertOrder(value);
-            list.add(order);
+        for (DRawOrders.Value value : rawOrders.getOrders().getValue()) {
+            if (value.getIsRemoved()) {
+                orders.getRemoved().add(value.getId());
+            } else {
+                DOrder order = convertOrder(value);
+                if (value.getIsAdded()) {
+                    orders.getAdded().add(order);
+                }else{
+                    orders.getUpdates().add(order);
+                }
+                if(order.getId() == null) {
+                    order.setId(value.getId());
+                }
+            }
         }
-
-        orders.setOrders(list);
-
         return orders;
 
     }
 
-    public static DOrder convertOrder(Value row) {
+    public static DOrder convertOrder(DRawOrders.Value row) {
 
         DOrder order = new DOrder();
-
-        for (Value_ value : row.getValue()) {
+        for (DFieldValue value : row.getValue()) {
 
             try {
 
@@ -262,14 +247,14 @@ public class DUtils {
                 switch (value.getName()) {
                     case "contractType":
                     case "contractSize":
-                        int intValue = (int) (double) value.getValue();
-                        DOrder.class.getMethod(methodName, int.class).invoke(order, intValue);
+                        Integer intValue = (int) (double) value.getValue();
+                        DOrder.class.getMethod(methodName, Integer.class).invoke(order, intValue);
                         break;
                     case "productId":
                     case "size":
                     case "quantity":
-                        long longValue = (long) (double) value.getValue();
-                        DOrder.class.getMethod(methodName, long.class).invoke(order, longValue);
+                        Long longValue = (long) (double) value.getValue();
+                        DOrder.class.getMethod(methodName, Long.class).invoke(order, longValue);
                         break;
                     case "id":
                     case "product":
@@ -279,7 +264,7 @@ public class DUtils {
                         break;
                     case "buysell":
                         String stringValue2 = (String) value.getValue();
-                        order.setBuysell(DOrderAction.getOrderByValue(stringValue2));
+                        order.setBuySell(DOrderAction.getOrderByValue(stringValue2));
                         break;
 
                     case "date":
@@ -295,10 +280,7 @@ public class DUtils {
                     case "price":
                     case "stopPrice":
                     case "totalOrderValue":
-                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
-                        if (bdValue.scale() > 4) {
-                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
-                        }
+                        BigDecimal bdValue = getBigDecimal(value.getValue());
                         DOrder.class.getMethod(methodName, BigDecimal.class).invoke(order, bdValue);
                         break;
 
@@ -333,11 +315,11 @@ public class DUtils {
             int month = Integer.parseInt(date.split("/")[1]) - 1;
 
             if (parsed.get(Calendar.MONTH) < month) {
-                parsed.add(-1, Calendar.YEAR);
+                parsed.add(Calendar.YEAR, -1);
             }
 
             parsed.set(Calendar.MONTH, month);
-            parsed.set(Calendar.DATE, Integer.parseInt(date.split("/")[1]));
+            parsed.set(Calendar.DATE, Integer.parseInt(date.split("/")[0]));
             parsed.set(Calendar.HOUR_OF_DAY, 0);
             parsed.set(Calendar.MINUTE, 0);
             parsed.set(Calendar.SECOND, 0);
@@ -367,7 +349,7 @@ public class DUtils {
 
         DTransaction transaction = new DTransaction();
 
-        for (Value_ value : row.getValue()) {
+        for (DFieldValue value : row.getValue()) {
 
             try {
 
@@ -409,10 +391,7 @@ public class DUtils {
                     case "price":
                     case "stopPrice":
                     case "totalOrderValue":
-                        BigDecimal bdValue = new BigDecimal((double) value.getValue());
-                        if (bdValue.scale() > 4) {
-                            bdValue = bdValue.setScale(4, RoundingMode.HALF_UP);
-                        }
+                        BigDecimal bdValue = getBigDecimal(value.getValue());
                         DTransaction.class.getMethod(methodName, BigDecimal.class).invoke(transaction, bdValue);
                         break;
 
@@ -646,7 +625,7 @@ public class DUtils {
             try {
                 d = DATE_FORMAT.parse(value);
             } catch (ParseException e) {
-                DLog.DEGIRO.warn("Date not parseable: " + value);
+                throw new IllegalArgumentException("Date not parseable: " + value, e);
             }
             return d;
         }

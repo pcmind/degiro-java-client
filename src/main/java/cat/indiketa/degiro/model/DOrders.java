@@ -1,25 +1,27 @@
 package cat.indiketa.degiro.model;
 
-import java.math.BigDecimal;
-import java.util.Calendar;
+import lombok.Data;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
- *
  * @author indiketa
  */
+@Data
 public class DOrders {
 
-    private List<DOrder> orders;
+    private long lastUpdate;
 
-    public List<DOrder> getOrders() {
-        return orders;
+    public boolean hasChanges() {
+        return !added.isEmpty() || !updates.isEmpty() || !removed.isEmpty();
     }
 
-    public void setOrders(List<DOrder> orders) {
-        this.orders = orders;
-    }
+    private List<DOrder> added = new ArrayList<>();
+    private List<DOrder> updates = new ArrayList<>();
+    private Set<String> removed = new LinkedHashSet<>();
 
-    
 
 }

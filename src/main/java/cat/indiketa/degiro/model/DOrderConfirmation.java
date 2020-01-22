@@ -1,57 +1,24 @@
 package cat.indiketa.degiro.model;
 
+import lombok.Data;
+
+import java.util.List;
+
 /**
  *
  * @author indiketa
  */
+@Data
 public class DOrderConfirmation {
+    //"{\"data\":{\"confirmationId\":\"15caf4dd-c2f2-4c0a-b5c2-e5f41c04a4be\",\"transactionFees\":[{\"id\":2,\"amount\":0.04,\"currency\":\"USD\"},{\"id\":3,\"amount\":0.50,\"currency\":\"EUR\"}]}}"
 
     private String confirmationId;
-    private double freeSpaceNew;
-    private String message;
-    private long status;
-    private String statusText;
+    private List<TransactionFee> transactionFees;
 
-    public String getConfirmationId() {
-        return confirmationId;
+    @Data
+    public static class TransactionFee {
+        private long id;
+        private Double amount;
+        private String currency;
     }
-
-    public void setConfirmationId(String confirmationId) {
-        this.confirmationId = confirmationId;
-    }
-
-    public double getFreeSpaceNew() {
-        return freeSpaceNew;
-    }
-
-    public void setFreeSpaceNew(double freeSpaceNew) {
-        this.freeSpaceNew = freeSpaceNew;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public long getStatus() {
-        return status;
-    }
-
-    public void setStatus(long status) {
-        this.status = status;
-    }
-
-    public String getStatusText() {
-        return statusText;
-    }
-
-    public void setStatusText(String statusText) {
-        this.statusText = statusText;
-    }
-    
-    
-
 }

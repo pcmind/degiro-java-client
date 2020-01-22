@@ -8,6 +8,7 @@ package cat.indiketa.degiro.model;
 /**
  *
  * @author indiketa
+ * @deprecated we should use the id in non static way. use {@link DConfigDictionary.DProductType }
  */
 public enum DProductType {
     ALL(0),

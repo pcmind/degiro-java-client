@@ -34,7 +34,9 @@ public enum DOrderTime {
         if (i < values.length) {
             type = values[i];
         }
-
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown type for DOrderTime " + value);
+        }
         return type;
     }
 
@@ -48,7 +50,9 @@ public enum DOrderTime {
         if (i < values.length) {
             type = values[i];
         }
-
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown type for DOrderTime " + value);
+        }
         return type;
     }
 }

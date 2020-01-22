@@ -18,6 +18,8 @@ package cat.indiketa.degiro.model;
 import java.math.BigDecimal;
 import java.util.List;
 
+import lombok.Data;
+
 /**
  *
  * @author indiketa
@@ -29,76 +31,13 @@ public class DPriceHistory {
     public String resolution;
     public List<Serie> series = null;
 
-    public String getStart() {
-        return start;
-    }
-
-    public void setStart(String start) {
-        this.start = start;
-    }
-
-    public String getEnd() {
-        return end;
-    }
-
-    public void setEnd(String end) {
-        this.end = end;
-    }
-
-    public String getResolution() {
-        return resolution;
-    }
-
-    public void setResolution(String resolution) {
-        this.resolution = resolution;
-    }
-
-    public List<Serie> getSeries() {
-        return series;
-    }
-
-    public void setSeries(List<Serie> series) {
-        this.series = series;
-    }
-
-    public class Serie {
+    @Data
+    public static class Serie {
 
         public String times;
         public String expires;
         public List<BigDecimal[]> data = null;
         public String id;
-
-        public String getTimes() {
-            return times;
-        }
-
-        public void setTimes(String times) {
-            this.times = times;
-        }
-
-        public String getExpires() {
-            return expires;
-        }
-
-        public void setExpires(String expires) {
-            this.expires = expires;
-        }
-
-        public List<BigDecimal[]> getData() {
-            return data;
-        }
-
-        public void setData(List<BigDecimal[]> data) {
-            this.data = data;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
 
     }
 

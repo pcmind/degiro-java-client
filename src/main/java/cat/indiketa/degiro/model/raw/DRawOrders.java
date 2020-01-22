@@ -1,54 +1,43 @@
 package cat.indiketa.degiro.model.raw;
 
-import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 /**
  *
  * @author indiketa
  */
+@Data
 public class DRawOrders {
 
     public RawOrders orders;
 
-    public RawOrders getOrders() {
-        return orders;
-    }
-
-    public void setOrders(RawOrders orders) {
-        this.orders = orders;
-    }
-
-    public class RawOrders {
+    @Data
+    @NoArgsConstructor
+    public static class RawOrders {
 
         public Long lastUpdated;
         public String name;
         public List<Value> value = null;
+    }
+    @Data
+    public static class Value {
 
-        public Long getLastUpdated() {
-            return lastUpdated;
+
+        private String id;
+        private List<DFieldValue> value = null;
+        private Boolean isAdded;
+        //true when row was deleted
+        private Boolean isRemoved;
+
+        public boolean getIsRemoved() {
+            return isRemoved != null && isRemoved;
         }
-
-        public void setLastUpdated(Long lastUpdated) {
-            this.lastUpdated = lastUpdated;
+        public boolean getIsAdded() {
+            return isAdded != null && isAdded;
         }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public List<Value> getValue() {
-            return value;
-        }
-
-        public void setValue(List<Value> value) {
-            this.value = value;
-        }
-
     }
 
 }

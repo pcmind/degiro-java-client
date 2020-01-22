@@ -6,14 +6,14 @@
 package cat.indiketa.degiro.model;
 
 /**
- *
  * @author indiketa
  */
 public enum DOrderType {
     LIMITED(0, "LIMIT"),
     MARKET_ORDER(2, "MARKET"),
     STOP_LOSS(3, "STOPLOSS"),
-    LIMITED_STOP_LOSS(1, "STOPLIMIT");
+    LIMITED_STOP_LOSS(1, "STOPLIMIT"),
+    TRAILING_STOP(4, "TRAILINGSTOP");
 
     private final int value;
     private final String strValue;
@@ -41,7 +41,9 @@ public enum DOrderType {
         if (i < values.length) {
             type = values[i];
         }
-
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown type for DOrderType #" + value);
+        }
         return type;
     }
 
@@ -55,7 +57,9 @@ public enum DOrderType {
         if (i < values.length) {
             type = values[i];
         }
-
+        if (type == null) {
+            throw new IllegalArgumentException("Unknown type for DOrderType " + value);
+        }
         return type;
     }
 

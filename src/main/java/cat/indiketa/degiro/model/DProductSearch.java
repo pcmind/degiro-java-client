@@ -7,29 +7,16 @@ package cat.indiketa.degiro.model;
 
 import java.util.List;
 
+import lombok.Data;
+
 /**
  *
  * @author indiketa
  */
+@Data
 public class DProductSearch {
 
     private int offset;
     private List<DProductDescription> products;
-
-    public int getOffset() {
-        return offset;
-    }
-
-    public void setOffset(int offset) {
-        this.offset = offset;
-    }
-
-    public List<DProductDescription> getProducts() {
-        return products;
-    }
-
-    public void setProducts(List<DProductDescription> products) {
-        this.products = products;
-    }
 
 }

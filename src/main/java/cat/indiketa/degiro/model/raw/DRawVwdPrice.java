@@ -5,31 +5,18 @@
  */
 package cat.indiketa.degiro.model.raw;
 
+import lombok.Data;
+
 import java.util.List;
 
 /**
  *
  * @author indiketa
  */
+@Data
 public class DRawVwdPrice {
 
     public String m;
     public List<String> v = null;
-
-    public String getM() {
-        return m;
-    }
-
-    public void setM(String m) {
-        this.m = m;
-    }
-
-    public List<String> getV() {
-        return v;
-    }
-
-    public void setV(List<String> v) {
-        this.v = v;
-    }
 
 }

@@ -1,126 +1,60 @@
 package cat.indiketa.degiro.model.raw;
 
+import lombok.Data;
+
 import java.util.List;
 
 /**
  *
  * @author indiketa
  */
+@Data
 public class DRawPortfolio {
 
     private Portfolio portfolio;
 
-    public Portfolio getPortfolio() {
-        return portfolio;
-    }
-
-    public void setPortfolio(Portfolio portfolio) {
-        this.portfolio = portfolio;
-    }
-
+    @Data
     public static class Portfolio {
 
         private Long lastUpdated;
         private String name;
         private List<Value> value = null;
         private Boolean isAdded;
-
-        public Long getLastUpdated() {
-            return lastUpdated;
-        }
-
-        public void setLastUpdated(Long lastUpdated) {
-            this.lastUpdated = lastUpdated;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public List<Value> getValue() {
-            return value;
-        }
-
-        public void setValue(List<Value> value) {
-            this.value = value;
-        }
-
-        public Boolean getIsAdded() {
-            return isAdded;
-        }
-
-        public void setIsAdded(Boolean isAdded) {
-            this.isAdded = isAdded;
-        }
+        //true when row was deleted
+        private Boolean isRemoved;
 
     }
-
+    @Data
     public static class Value {
 
+
+        /**
+         * Usualy string = "positionrow"
+         */
         private String name;
-        private List<Value_> value = null;
-        private boolean isAdded;
 
-        public String getName() {
-            return name;
+        /**
+         * Samve as productId but in string format instead of number.
+         * hence only one entry in portfolio per product is present in remote DeGiro.
+         *
+         */
+        private String id;
+        private List<DFieldValue> value = null;
+        private Boolean isAdded;
+        //true when row was deleted
+        private Boolean isRemoved;
+
+        public boolean getIsRemoved() {
+            return isRemoved != null && isRemoved;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public boolean getIsAdded() {
+            return isAdded != null && isAdded;
         }
 
-        public List<Value_> getValue() {
-            return value;
+        public boolean getIsModified() {
+            return isAdded == null && isRemoved == null;
         }
-
-        public void setValue(List<Value_> value) {
-            this.value = value;
-        }
-
-        public boolean isIsAdded() {
-            return isAdded;
-        }
-
-        public void setIsAdded(boolean isAdded) {
-            this.isAdded = isAdded;
-        }
-
-    }
-
-    public static class Value_ {
-
-        private String name;
-        private Object value;
-        private boolean isAdded;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public Object getValue() {
-            return value;
-        }
-
-        public void setValue(Object value) {
-            this.value = value;
-        }
-
-        public boolean isIsAdded() {
-            return isAdded;
-        }
-
-        public void setIsAdded(boolean isAdded) {
-            this.isAdded = isAdded;
-        }
-
     }
 
 }

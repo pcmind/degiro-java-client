@@ -1,13 +1,10 @@
 package cat.indiketa.degiro;
 
+import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
-import cat.indiketa.degiro.model.DNewOrder;
-import cat.indiketa.degiro.model.DOrderAction;
-import cat.indiketa.degiro.model.DOrderConfirmation;
-import cat.indiketa.degiro.model.DOrderTime;
-import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.model.*;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import com.google.gson.Gson;
@@ -29,6 +26,18 @@ class DeGiroImplItTest {
     private List<ExpectRequestResponse> response;
     private DSession session;
     private DeGiro deGiro;
+
+    @Test
+    void loginFailed() throws DeGiroException {
+        prepareResponse().setUri("/login/secure/login").setMethod("POST").andReply(400, "Invalid credentials");
+        assertThrows(DInvalidCredentialsException.class, () -> deGiro.getAccountInfo());
+    }
+
+    @Test
+    void getAccountInfoSuccess() throws DeGiroException {
+        setUpdaIntResponse();
+        deGiro.getAccountInfo();
+    }
 
     @Test
     void marketOrder() throws DeGiroException {

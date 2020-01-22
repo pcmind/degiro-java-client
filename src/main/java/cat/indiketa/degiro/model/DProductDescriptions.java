@@ -2,20 +2,14 @@ package cat.indiketa.degiro.model;
 
 import java.util.Map;
 
+import lombok.Data;
+
 /**
  *
  * @author indiketa
  */
+@Data
 public class DProductDescriptions  {
 
     private Map<Long, DProductDescription> data;
-
-    public Map<Long, DProductDescription> getData() {
-        return data;
-    }
-
-    public void setData(Map<Long, DProductDescription> data) {
-        this.data = data;
-    }
-
 }

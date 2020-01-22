@@ -6,31 +6,8 @@ import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DCashFunds;
-import cat.indiketa.degiro.model.DClient;
-import cat.indiketa.degiro.model.DConfig;
-import cat.indiketa.degiro.model.DLastTransactions;
-import cat.indiketa.degiro.model.DLogin;
-import cat.indiketa.degiro.model.DNewOrder;
-import cat.indiketa.degiro.model.DOrder;
-import cat.indiketa.degiro.model.DOrderConfirmation;
-import cat.indiketa.degiro.model.DOrders;
-import cat.indiketa.degiro.model.DPlacedOrder;
-import cat.indiketa.degiro.model.DPortfolioProducts;
-import cat.indiketa.degiro.model.DPortfolioSummary;
-import cat.indiketa.degiro.model.DPrice;
-import cat.indiketa.degiro.model.DPriceHistory;
-import cat.indiketa.degiro.model.DPriceListener;
-import cat.indiketa.degiro.model.DProductDescriptions;
-import cat.indiketa.degiro.model.DProductSearch;
-import cat.indiketa.degiro.model.DProductType;
-import cat.indiketa.degiro.model.DTransactions;
-import cat.indiketa.degiro.model.raw.DRawCashFunds;
-import cat.indiketa.degiro.model.raw.DRawOrders;
-import cat.indiketa.degiro.model.raw.DRawPortfolio;
-import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
-import cat.indiketa.degiro.model.raw.DRawTransactions;
-import cat.indiketa.degiro.model.raw.DRawVwdPrice;
+import cat.indiketa.degiro.model.*;
+import cat.indiketa.degiro.model.raw.*;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import cat.indiketa.degiro.utils.DUtils;
@@ -43,15 +20,11 @@ import org.apache.http.message.BasicHeader;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author indiketa
@@ -68,9 +41,7 @@ public class DeGiroImpl implements DeGiro {
     }.getType();
 
     private DPriceListener priceListener;
-    private long portfolioSummaryLastUpdate = 0;
-    private long portfolioLastUpdate = 0;
-    private String currency = "EUR";
+    //must be set just after login
     private long pollingInterval = TimeUnit.SECONDS.toMillis(5);
     private Timer pricePoller = null;
 
@@ -84,17 +55,17 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DPortfolioProducts getPortfolio() throws DeGiroException {
+    public DPortfolioProducts updatePortfolio(long lastUpdate) throws DeGiroException {
 
         DPortfolioProducts portfolio = null;
         ensureLogged();
 
         try {
-            DResponse response = getData("portfolio=" + portfolioLastUpdate, null);
+            DResponse response = getData("portfolio=" + lastUpdate, null);
             String data = getResponseData(response);
+            DLog.DEGIRO.info("getPortfolio: " + data);
             DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
-            portfolioLastUpdate = rawPortfolio.getPortfolio().getLastUpdated();
-            portfolio = DUtils.convert(rawPortfolio, currency);
+            portfolio = DUtils.convert(rawPortfolio, session.getAccountInfo().getBaseCurrency());
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
@@ -102,21 +73,43 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DPortfolioSummary getPortfolioSummary() throws DeGiroException {
+    public DPortfolioSummaryUpdate updatePortfolioSummary(long lastUpdate) throws DeGiroException {
 
-        DPortfolioSummary portfolioSummary = null;
+        DPortfolioSummaryUpdate portfolioSummary = null;
         ensureLogged();
 
         try {
-            DResponse response = getData("totalPortfolio=" + portfolioSummaryLastUpdate, null);
+            DResponse response = getData("totalPortfolio=" + lastUpdate, null);
             String data = getResponseData(response);
             DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
-            portfolioSummaryLastUpdate = rawPortfolioSummary.getTotalPortfolio().getLastUpdated();
             portfolioSummary = DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio());
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
         return portfolioSummary;
+    }
+
+    @Override
+    public DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate) throws DeGiroException {
+        DUpdates update = new DUpdates();
+        try {
+            DResponse response = getData(String.format("orders=%d&portfolio=%d&totalPortfolio=%d", lastOrderUpdate, lastPortfolioUpdate, lastPortfolioSummaryUpdate), null);
+            String data = getResponseData(response);
+            //orders
+            DRawOrders rawOrders = gson.fromJson(data, DRawOrders.class);
+            update.setOrders(DUtils.convert(rawOrders));
+
+            //portfolio summary
+            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
+            update.setPortfolioSummary(DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio()));
+
+            //portfolio
+            DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
+            update.setPortfolio(DUtils.convert(rawPortfolio, session.getAccountInfo().getBaseCurrency()));
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while retrieving portfolio", e);
+        }
+        return update;
     }
 
     @Override
@@ -136,19 +129,38 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public List<DOrder> getOrders() throws DeGiroException {
+    public DOrders updateOrders(long lastUpdate) throws DeGiroException {
 
         DOrders orders = null;
         ensureLogged();
 
         try {
-            DResponse response = getData("orders=0", null);
+            DResponse response = getData("orders=" + lastUpdate, null);
             DRawOrders rawOrders = gson.fromJson(getResponseData(response), DRawOrders.class);
             orders = DUtils.convert(rawOrders);
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving orders", e);
         }
-        return orders.getOrders();
+        return orders;
+    }
+
+    @Override
+    public List<DOrderHistoryRecord> getOrdersHistory(Calendar from, Calendar to) throws DeGiroException {
+
+        DOrderHistory dOrderHistory = null;
+        ensureLogged();
+
+        try {
+            String fromStr = from.get(Calendar.DATE) + "%2F" + (from.get(Calendar.MONTH) + 1) + "%2F" + from.get(Calendar.YEAR);
+            String toStr = to.get(Calendar.DATE) + "%2F" + (to.get(Calendar.MONTH) + 1) + "%2F" + to.get(Calendar.YEAR);
+
+            DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/order-history?fromDate=" + fromStr + "&toDate=" + toStr + "&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
+            dOrderHistory = gson.fromJson(getResponseData(response), DOrderHistory.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while retrieving order history", e);
+        }
+        return dOrderHistory.getData();
+
     }
 
     @Override
@@ -165,6 +177,12 @@ public class DeGiroImpl implements DeGiro {
             throw new DeGiroException("IOException while retrieving transactions", e);
         }
         return transactions;
+    }
+
+    @Override
+    public DClient getClientData() throws DeGiroException {
+        ensureLogged();
+        return session.getClient();
     }
 
     @Override
@@ -213,19 +231,34 @@ public class DeGiroImpl implements DeGiro {
             session.setConfig(gson.fromJson(getResponseData(response), DConfig.class));
 
             response = comm.getUrlData(session.getConfig().getPaUrl(), "client?sessionId=" + session.getJSessionId(), null);
-            session.setClient(gson.fromJson(getResponseData(response), DClient.class));
-
+            final DClientData client = gson.fromJson(getResponseData(response), DClientData.class);
+            final DClient data = client.getData();
+            if (data == null || data.getIntAccount() == 0) {
+                throw new DeGiroException("IOException while retrieving user account information");
+            }
+            session.setClient(data);
+            //set additional info
+            session.setAccountInfo(getAccountInfo());
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving user information", e);
         }
+    }
 
+    public DAccountInfo getAccountInfo() throws DeGiroException {
+        ensureLogged();
+        try {
+            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/account/info/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId(), null);
+            return gson.fromJsonData(getResponseData(response), DAccountInfo.class);
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking account information", e);
+        }
     }
 
     private void ensureVwdSession() throws DeGiroException {
         ensureLogged();
         if (session.getVwdSession() == null || session.getLastVwdSessionUsed() == 0 || (System.currentTimeMillis() - session.getLastVwdSessionUsed()) > TimeUnit.SECONDS.toMillis(15)) {
             DLog.DEGIRO.info("Renewing VWD session");
-            getVwdSession();
+            renewVwdSession();
             if (!subscribedVwdIssues.isEmpty()) {
                 subscribeToPrice(subscribedVwdIssues.keySet());
             }
@@ -233,7 +266,7 @@ public class DeGiroImpl implements DeGiro {
         }
     }
 
-    private void getVwdSession() throws DeGiroException {
+    private void renewVwdSession() throws DeGiroException {
 
         try {
             List<Header> headers = new ArrayList<>(1);
@@ -308,8 +341,7 @@ public class DeGiroImpl implements DeGiro {
         List<Header> headers = new ArrayList<>(1);
         headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
 
-        HashMap<String, String> data = new HashMap();
-        data.put("controlData", generatePriceRequestPayload());
+        Object data = generatePriceRequestPayload(subscribedVwdIssues.entrySet().stream().filter(e -> e.getValue() != null && e.getValue() > pollingInterval).map(Map.Entry::getKey));
 
         DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), data, headers);
         getResponseData(response);
@@ -317,16 +349,14 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
-    private String generatePriceRequestPayload() {
-
-        String requestedIssues = "";
-        for (String issueId : subscribedVwdIssues.keySet()) {
-            Long last = subscribedVwdIssues.get(issueId);
-            if (last == null || last > pollingInterval) {
-                requestedIssues += "req(X.BidPrice);req(X.AskPrice);req(X.LastPrice);req(X.LastTime);".replace("X", issueId + "");
-            }
-        }
-        return requestedIssues;
+    private Object generatePriceRequestPayload(Stream<String> subscribedVwdIssues) {
+        StringBuilder requestedIssues = new StringBuilder();
+        subscribedVwdIssues.forEach(issueId -> {
+            requestedIssues.append("req(X.BidPrice);req(X.AskPrice);req(X.LastPrice);req(X.LastTime);".replace("X", issueId + ""));
+        });
+        HashMap<String, String> data = new HashMap<>();
+        data.put("controlData", requestedIssues.toString());
+        return data;
 
     }
 
@@ -368,25 +398,41 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DProductDescriptions getProducts(List<Long> productIds) throws DeGiroException {
+    public DConfigDictionary getProductsConfig() throws DeGiroException {
+        return get(
+                "Products Configuration",
+                () -> comm.getUrlData(session.getConfig().getDictionaryUrl(), "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null),
+                DConfigDictionary.class
+        );
+    }
 
-        DProductDescriptions products = null;
+    private <T> T get(String desc, Callable<DResponse> call, Class<T> cls) throws DeGiroException {
+        return get(desc, call, response -> gson.fromJson(response, cls));
+    }
 
+    private <T> T get(String desc, Callable<DResponse> get, ExceptionalTransformation<String, T> transformation) throws DeGiroException {
         ensureLogged();
         try {
-            List<Header> headers = new ArrayList<>(1);
-            ArrayList<String> productIdStr = new ArrayList<>(productIds.size());
-            for (Long productId : productIds) {
-                productIdStr.add(productId + "");
-            }
-            DResponse response = comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIdStr, headers);
-            products = gson.fromJson(getResponseData(response), DProductDescriptions.class);
+            DResponse response = get.call();
+            DLog.DEGIRO.trace("Response of {}: " + response);
+            return transformation.transform(getResponseData(response));
 
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving product information", e);
+        } catch (Exception e) {
+            throw new DeGiroException("Exception occurred : " + desc, e);
         }
+    }
 
-        return products;
+    @Override
+    public DProductDescriptions getProducts(List<Long> productIds) throws DeGiroException {
+        return get(
+                "Product Descriptions",
+                () -> {
+                    List<Header> headers = new ArrayList<>(1);
+                    List<String> productIdStr = productIds.stream().map(String::valueOf).collect(Collectors.toList());
+                    return comm.getUrlData(session.getConfig().getProductSearchUrl(), "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), productIdStr, headers);
+                },
+                DProductDescriptions.class
+        );
     }
 
     @Override
@@ -428,16 +474,10 @@ public class DeGiroImpl implements DeGiro {
             throw new DeGiroException("Order was null (no order to check)");
         }
 
-        DOrderConfirmation orderConfirmation = null;
-        ensureLogged();
-        try {
-            DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/checkOrder;jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), orderToMap(order));
-            orderConfirmation = gson.fromJson(getResponseData(response), DOrderConfirmation.class);
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while checking order", e);
-        }
-
-        return orderConfirmation;
+        //expected response: "{\"data\":{\"confirmationId\":\"15caf4dd-c2f2-4c0a-b5c2-e5f41c04a4be\",\"transactionFees\":[{\"id\":2,\"amount\":0.04,\"currency\":\"USD\"},{\"id\":3,\"amount\":0.50,\"currency\":\"EUR\"}]}}"
+        return get("Check Order", () -> {
+            return comm.getUrlData(session.getConfig().getTradingUrl(), "v5/checkOrder;jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), orderToMap(order));
+        }, r -> gson.fromJsonData(r, DOrderConfirmation.class));
     }
 
     @Override
@@ -456,6 +496,8 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
         try {
             DResponse response = comm.getUrlData(session.getConfig().getTradingUrl(), "v5/order/" + confirmationId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), orderToMap(order));
+            //ERROR Code 400 expected if price is set to more thant 20% of original price, degiro will reject order
+            //"{\"data\":{\"orderId\":\"13ea6a6a-f361-41d8-96e5-f1fa5b3a9e3d\"}}"
             placedOrder = gson.fromJson(getResponseData(response), DPlacedOrder.class);
         } catch (IOException e) {
             throw new DeGiroException("IOException while checking order", e);
@@ -499,11 +541,11 @@ public class DeGiroImpl implements DeGiro {
         try {
 
             Map degiroOrder = new HashMap();
-            degiroOrder.put("buysell", order.getBuysell().getValue());
+            degiroOrder.put("buySell", order.getBuySell().getValue());
             degiroOrder.put("orderType", order.getOrderType().getValue());
             degiroOrder.put("productId", order.getProductId());
             degiroOrder.put("size", order.getSize());
-            degiroOrder.put("timeType", order.getOrderType().getValue());
+            degiroOrder.put("timeType", order.getOrderTime().getValue());
             if (limit != null) {
                 degiroOrder.put("price", limit.toPlainString());
             }
@@ -559,7 +601,7 @@ tz:         Europe/Madrid
 
     private Map orderToMap(DNewOrder order) {
         Map degiroOrder = new HashMap();
-        degiroOrder.put("buysell", order.getAction().getValue());
+        degiroOrder.put("buySell", order.getAction().getValue());
         degiroOrder.put("orderType", order.getOrderType().getValue());
         degiroOrder.put("productId", order.getProductId());
         degiroOrder.put("size", order.getSize());
@@ -576,13 +618,26 @@ tz:         Europe/Madrid
 
     private String getResponseData(DResponse response) throws DeGiroException {
 
-        DLog.HTTP.info(response.getMethod() + " " + response.getUrl() + " >> HTTP " + response.getStatus());
+        DLog.HTTP.info(response.getMethod() + " " + response.getUrl() + " >> HTTP " + response.getStatus() + " Body: " + response.getText());
         String data = null;
 
         if (response.getStatus() == 401) {
             DLog.DEGIRO.warn("Session expired, clearing session tokens");
             session.clearSession();
             throw new DUnauthorizedException();
+        }
+
+        if (response.getStatus() == 400 && !Strings.isNullOrEmpty(response.getText()) && response.getText().startsWith("{")) {
+            D400ErrorResponse error;
+            try {
+                error = gson.fromJson(response.getText(), D400ErrorResponse.class);
+            } catch (IOException e) {
+                //unable to decode error message
+                throw new DeGiroException("Unexpected HTTP Status " + response.getStatus() + ": " + response.getMethod() + " " + response.getUrl() + " " + response.getText());
+            }
+            if (error != null && !error.getErrors().isEmpty()) {
+                throw new DeGiroException(error.getErrorsToString());
+            }
         }
 
         if (response.getStatus() == 200 || response.getStatus() == 201) {
@@ -599,14 +654,6 @@ tz:         Europe/Madrid
         return session;
     }
 
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
     private class DPriceTimerTask extends TimerTask {
 
         @Override
@@ -618,6 +665,42 @@ tz:         Europe/Madrid
             }
         }
 
+    }
+
+    public boolean isConnected() {
+        try {
+            ensureLogged();
+        } catch (DeGiroException e) {
+            return false;
+        }
+        boolean connected = !Strings.isNullOrEmpty(session.getJSessionId());
+        if (connected && comm.lastSuccess < (System.nanoTime() - TimeUnit.SECONDS.toNanos(6))) {
+            //test connection if no activity for last x seconds
+            try {
+                //test if connection is alive
+                final DResponse urlData = comm.getUrlData(degiro.getBaseUrl(), "/login/secure/config", null);
+                if (urlData.getStatus() == 401) { //session expired
+                    session.clearSession();
+                    //try to login
+                    login();
+                    return true;
+                }
+                connected = urlData.getStatus() == 200;
+            } catch (Exception e) {
+                DLog.DEGIRO.error("Connection failure", e);
+                connected = false;
+                session.clearSession();
+            }
+        }
+        return connected;
+    }
+
+    @Override
+    public void close() {
+        if (pricePoller != null) {
+            pricePoller.cancel();
+            pricePoller = null;
+        }
     }
 
     private static final class TrackConnection implements IDCommunication {
@@ -639,4 +722,7 @@ tz:         Europe/Madrid
         }
     }
 
+    private interface ExceptionalTransformation<T, R> {
+        R transform(T data) throws Exception;
+    }
 }
