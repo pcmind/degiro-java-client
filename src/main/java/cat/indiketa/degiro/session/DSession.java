@@ -1,6 +1,5 @@
 package cat.indiketa.degiro.session;
 
-import cat.indiketa.degiro.model.DAccountInfo;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
 import com.google.gson.annotations.Expose;
@@ -24,8 +23,6 @@ public class DSession {
     protected long lastVwdSessionUsed;
     @Expose
     protected List<BasicClientCookie> cookies;
-    @Expose
-    protected DAccountInfo dAccountInfo;
 
     public DConfig getConfig() {
         return config;
@@ -41,14 +38,6 @@ public class DSession {
 
     public List<BasicClientCookie> getCookies() {
         return cookies;
-    }
-
-    public DAccountInfo getAccountInfo() {
-        return dAccountInfo;
-    }
-
-    public void setAccountInfo(DAccountInfo dAccountInfo) {
-        this.dAccountInfo = dAccountInfo;
     }
 
     public String getJSessionId() {

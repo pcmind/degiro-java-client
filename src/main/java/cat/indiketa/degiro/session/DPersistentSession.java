@@ -1,7 +1,6 @@
 package cat.indiketa.degiro.session;
 
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.DAccountInfo;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
 import com.google.common.base.Strings;
@@ -51,7 +50,6 @@ public class DPersistentSession extends DSession {
                         vwdSession = ds.vwdSession;
                         cookies = ds.cookies;
                         lastVwdSessionUsed = ds.lastVwdSessionUsed;
-                        dAccountInfo = ds.dAccountInfo;
                         DLog.DEGIRO.info("Permanent session storage loaded (" + file.length() + " bytes).");
                     }
                 }
@@ -99,12 +97,6 @@ public class DPersistentSession extends DSession {
     @Override
     public void setClient(DClient client) {
         super.setClient(client);
-        saveSession();
-    }
-
-    @Override
-    public void setAccountInfo(DAccountInfo dAccountInfo) {
-        super.setAccountInfo(dAccountInfo);
         saveSession();
     }
 

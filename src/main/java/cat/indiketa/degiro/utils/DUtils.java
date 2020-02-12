@@ -4,10 +4,8 @@ import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.*;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
-import cat.indiketa.degiro.model.DPortfolioProducts.DPortfolioProduct;
 import cat.indiketa.degiro.model.raw.*;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
-import cat.indiketa.degiro.model.raw.DFieldValue;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
@@ -34,37 +32,42 @@ public class DUtils {
     private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
     private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
-    public static DPortfolioProducts convert(DRawPortfolio rawPortfolio, String currency) {
-        DPortfolioProducts portfolio = new DPortfolioProducts();
+    public static DUpdates.DLastUpdate<List<DUpdate<DPortfolioProduct, String>>> convert(DRawPortfolio rawPortfolio) {
+        final List<DUpdate<DPortfolioProduct, String>> updates = new ArrayList<>();
         final DRawPortfolio.Portfolio portfolio1 = rawPortfolio.getPortfolio();
-        portfolio.setLastUpdate(portfolio1.getLastUpdated());
         for (Value value : portfolio1.getValue()) {
-            if(value.getIsRemoved()) {
-                portfolio.getRemoved().add(value.getId());
-            }else {
-                DPortfolioProduct productRow = convertProduct(value, currency);
-                if(value.getIsAdded()) {
-                    portfolio.getAdded().add(productRow);
-                }else{
-                    portfolio.getUpdates().add(productRow);
-                }
-                if(productRow.getId() == null) {
-                    productRow.setId(value.getId());
+            if (value.getIsRemoved()) {
+                updates.add(DUpdate.ofDelete(value.getId()));
+            } else {
+                if (value.getIsAdded()) {
+                    updates.add(DUpdate.ofCreate(value.getId(), () -> convertProduct(value)));
+                } else {
+                    updates.add(DUpdate.ofUpdate(value.getId(), r -> applyChangesToPortfolioProduct(value, r)));
                 }
             }
         }
-        return portfolio;
+        return DUpdates.DLastUpdate.of(portfolio1.getLastUpdated(), updates);
 
     }
 
-    public static DPortfolioSummaryUpdate convertPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row) {
-        final DPortfolioSummaryUpdate update = new DPortfolioSummaryUpdate();
-        update.setLastUpdated(row.getLastUpdated());
-        if(row.getValue() == null || row.getValue().isEmpty()) {
-            return update;
+    public static DUpdates.DLastUpdate<DUpdate<DPortfolioSummary, String>> convertPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row) {
+        if (row.getValue() == null || row.getValue().isEmpty()) {
+            return DUpdates.DLastUpdate.of(row.getLastUpdated(), null);
         }
-        update.setAdded(row.getIsAdded());
-        DPortfolioSummary portfolioSummary = new DPortfolioSummary();
+        if (row.getIsAdded()) {
+            return DUpdates.DLastUpdate.of(row.getLastUpdated(), DUpdate.ofCreate("totalPortfolio", () -> {
+                DPortfolioSummary portfolioSummary = new DPortfolioSummary();
+                applyChangesToPortfolioSummary(row, portfolioSummary);
+                return portfolioSummary;
+            }));
+        }else {
+            return DUpdates.DLastUpdate.of(row.getLastUpdated(), DUpdate.ofUpdate("totalPortfolio", portfolioSummary -> {
+                applyChangesToPortfolioSummary(row, portfolioSummary);
+            }));
+        }
+    }
+
+    private static void applyChangesToPortfolioSummary(DRawPortfolioSummary.TotalPortfolio row, DPortfolioSummary portfolioSummary) {
 
         for (DFieldValue value : row.getValue()) {
 
@@ -100,9 +103,6 @@ public class DUtils {
                 DLog.DEGIRO.error("Error while setting value of portfolioSummary." + value.getName(), e);
             }
         }
-        update.setPortfolioSummary(portfolioSummary);
-
-        return update;
     }
 
     private static BigDecimal getBigDecimal(Object value1) {
@@ -113,9 +113,15 @@ public class DUtils {
         return bdValue;
     }
 
-    public static DPortfolioProduct convertProduct(Value row, String currency) {
-        DPortfolioProduct productRow = new DPortfolioProduct(currency);
+    public static DPortfolioProduct convertProduct(Value row) {
+        DPortfolioProduct productRow = new DPortfolioProduct();
 
+        applyChangesToPortfolioProduct(row, productRow);
+
+        return productRow;
+    }
+
+    private static void applyChangesToPortfolioProduct(Value row, DPortfolioProduct productRow) {
         for (DFieldValue value : row.getValue()) {
 
             try {
@@ -124,8 +130,8 @@ public class DUtils {
                 switch (value.getName()) {
                     case "size":
                     case "averageFxRate":
-                        Long longValue = Double.valueOf(value.getValue().toString()).longValue();
-                        DPortfolioProduct.class.getMethod(methodName, Long.class).invoke(productRow, longValue);
+                        long longValue = Double.valueOf(value.getValue().toString()).longValue();
+                        DPortfolioProduct.class.getMethod(methodName, long.class).invoke(productRow, longValue);
                         break;
                     case "id":
                     case "positionType":
@@ -151,8 +157,10 @@ public class DUtils {
                         break;
                     case "todayPlBase":
                     case "plBase":
-                        Map values = (Map) value.getValue();
-                        DPortfolioProduct.class.getMethod(methodName, BigDecimal.class).invoke(productRow, new BigDecimal(values.get(currency).toString()));
+                        Map<String, ?> values = (Map<String, ?>) value.getValue();
+                        final HashMap<String, BigDecimal> map = new HashMap<>();
+                        values.forEach((k, v) -> map.put(k, new BigDecimal(v.toString())));
+                        DPortfolioProduct.class.getMethod(methodName, Map.class).invoke(productRow, values);
                         break;
 
                 }
@@ -160,8 +168,6 @@ public class DUtils {
                 DLog.DEGIRO.error("Error while setting value of portfolio", e);
             }
         }
-
-        return productRow;
     }
 
     public static DCashFunds convert(DRawCashFunds rawCashFunds) {
@@ -212,32 +218,34 @@ public class DUtils {
         return cashFund;
     }
 
-    public static DOrders convert(DRawOrders rawOrders) {
-        DOrders orders = new DOrders();
-        orders.setLastUpdate(rawOrders.orders.lastUpdated);
+    public static DUpdates.DLastUpdate<List<DUpdate<DOrder, String>>> convert(DRawOrders rawOrders) {
+
+        final List<DUpdate<DOrder, String>> updates = new ArrayList<>();
 
         for (DRawOrders.Value value : rawOrders.getOrders().getValue()) {
             if (value.getIsRemoved()) {
-                orders.getRemoved().add(value.getId());
+                updates.add(DUpdate.ofDelete(value.getId()));
             } else {
                 DOrder order = convertOrder(value);
                 if (value.getIsAdded()) {
-                    orders.getAdded().add(order);
-                }else{
-                    orders.getUpdates().add(order);
-                }
-                if(order.getId() == null) {
-                    order.setId(value.getId());
+                    updates.add(DUpdate.ofCreate(value.getId(), () -> convertOrder(value)));
+                } else {
+                    updates.add(DUpdate.ofUpdate(value.getId(), previ -> applyChangesToOrder(value, previ)));
                 }
             }
         }
-        return orders;
+        return DUpdates.DLastUpdate.of(rawOrders.orders.lastUpdated, updates);
 
     }
 
     public static DOrder convertOrder(DRawOrders.Value row) {
 
         DOrder order = new DOrder();
+        applyChangesToOrder(row, order);
+        return order;
+    }
+
+    private static void applyChangesToOrder(DRawOrders.Value row, DOrder order) {
         for (DFieldValue value : row.getValue()) {
 
             try {
@@ -247,14 +255,14 @@ public class DUtils {
                 switch (value.getName()) {
                     case "contractType":
                     case "contractSize":
-                        Integer intValue = (int) (double) value.getValue();
-                        DOrder.class.getMethod(methodName, Integer.class).invoke(order, intValue);
+                        int intValue = (int) (double) value.getValue();
+                        DOrder.class.getMethod(methodName, int.class).invoke(order, intValue);
                         break;
                     case "productId":
                     case "size":
                     case "quantity":
-                        Long longValue = (long) (double) value.getValue();
-                        DOrder.class.getMethod(methodName, Long.class).invoke(order, longValue);
+                        long longValue = (long) (double) value.getValue();
+                        DOrder.class.getMethod(methodName, long.class).invoke(order, longValue);
                         break;
                     case "id":
                     case "product":
@@ -296,7 +304,6 @@ public class DUtils {
             }
 
         }
-        return order;
     }
 
     private static Calendar processDate(String date) {

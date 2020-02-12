@@ -19,25 +19,25 @@ import java.util.Calendar;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class DOrder implements DOrderInterface {
+public class DOrder {
 
     private String id;
     private Calendar date;
-    private Long productId;
+    private long productId;
     private String product;
-    private Integer contractType;
-    private Integer contractSize;
+    private int contractType;
+    private int contractSize;
     private String currency;
     private DOrderAction buySell;
-    private Long size;
-    private Long quantity;
+    private long size;
+    private long quantity;
     private BigDecimal price;
     private BigDecimal stopPrice;
     private BigDecimal totalOrderValue;
     private DOrderType orderType;
     private DOrderTime orderTime;
-    private Boolean isModifiable;
-    private Boolean isDeletable;
+    private boolean isModifiable;
+    private boolean isDeletable;
 
     public DOrder copy() {
         return new DOrder(id, date, productId, product, contractType, contractSize, currency, buySell, size, quantity, price, stopPrice, totalOrderValue, orderType, orderTime, isModifiable, isDeletable);

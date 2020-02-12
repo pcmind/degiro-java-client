@@ -54,46 +54,25 @@ public class DeGiroImpl implements DeGiro {
         this.subscribedVwdIssues = new HashMap<>(500);
     }
 
+    /**
+     * Get all updates at once to avoid roudtrips.
+     * Note: We can get each one of the argument separetly but from the API.
+     *
+     * @param lastOrderUpdate            last receive orders lastUpdated
+     * @param lastPortfolioUpdate        last receive portfolio lastUpdated
+     * @param lastPortfolioSummaryUpdate last receive portfolioSummary lastUpdated
+     * @param lastHistoricalOrders       last historical orders
+     * @param lastTransactions           last transactions
+     * @param lastAlerts                 last alerts
+     * @return all available changes from between last update an now
+     * @throws DeGiroException
+     */
     @Override
-    public DPortfolioProducts updatePortfolio(long lastUpdate) throws DeGiroException {
-
-        DPortfolioProducts portfolio = null;
-        ensureLogged();
-
-        try {
-            DResponse response = getData("portfolio=" + lastUpdate, null);
-            String data = getResponseData(response);
-            DLog.DEGIRO.info("getPortfolio: " + data);
-            DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
-            portfolio = DUtils.convert(rawPortfolio, session.getAccountInfo().getBaseCurrency());
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving portfolio", e);
-        }
-        return portfolio;
-    }
-
-    @Override
-    public DPortfolioSummaryUpdate updatePortfolioSummary(long lastUpdate) throws DeGiroException {
-
-        DPortfolioSummaryUpdate portfolioSummary = null;
-        ensureLogged();
-
-        try {
-            DResponse response = getData("totalPortfolio=" + lastUpdate, null);
-            String data = getResponseData(response);
-            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
-            portfolioSummary = DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio());
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving portfolio", e);
-        }
-        return portfolioSummary;
-    }
-
-    @Override
-    public DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate) throws DeGiroException {
+    public DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate, long lastHistoricalOrders, long lastTransactions, long lastAlerts) throws DeGiroException {
         DUpdates update = new DUpdates();
         try {
-            DResponse response = getData(String.format("orders=%d&portfolio=%d&totalPortfolio=%d", lastOrderUpdate, lastPortfolioUpdate, lastPortfolioSummaryUpdate), null);
+
+            DResponse response = getData(String.format("portfolio=%d&totalPortfolio=%d&orders=%d&historicalOrders=%d&transactions=%d&alerts=%d", lastPortfolioUpdate, lastPortfolioSummaryUpdate, lastOrderUpdate, lastHistoricalOrders, lastTransactions, lastAlerts), null);
             String data = getResponseData(response);
             //orders
             DRawOrders rawOrders = gson.fromJson(data, DRawOrders.class);
@@ -105,7 +84,8 @@ public class DeGiroImpl implements DeGiro {
 
             //portfolio
             DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
-            update.setPortfolio(DUtils.convert(rawPortfolio, session.getAccountInfo().getBaseCurrency()));
+            update.setPortfolio(DUtils.convert(rawPortfolio));
+            //TODO update historicalOrders, transactions, alerts
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
@@ -126,22 +106,6 @@ public class DeGiroImpl implements DeGiro {
             throw new DeGiroException("IOException while retrieving cash funds", e);
         }
         return cashFunds;
-    }
-
-    @Override
-    public DOrders updateOrders(long lastUpdate) throws DeGiroException {
-
-        DOrders orders = null;
-        ensureLogged();
-
-        try {
-            DResponse response = getData("orders=" + lastUpdate, null);
-            DRawOrders rawOrders = gson.fromJson(getResponseData(response), DRawOrders.class);
-            orders = DUtils.convert(rawOrders);
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving orders", e);
-        }
-        return orders;
     }
 
     @Override
@@ -237,8 +201,6 @@ public class DeGiroImpl implements DeGiro {
                 throw new DeGiroException("IOException while retrieving user account information");
             }
             session.setClient(data);
-            //set additional info
-            session.setAccountInfo(getAccountInfo());
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving user information", e);
         }

@@ -48,15 +48,23 @@ public class DJsonDecoder {
         }
     }
 
+    public String toJson(Object src) {
+        return gson.toJson(src);
+    }
+
     public <T> T fromJson(JsonElement json, Class<T> classOfT) throws IOException {
         return gson.fromJson(json, classOfT);
+    }
+
+    public <T> T fromJsonData(String json, Type cls) throws IOException {
+        return fromJsonField("data", json, cls);
     }
 
     public <T> T fromJsonData(String json, Class<T> cls) throws IOException {
         return fromJsonField("data", json, cls);
     }
 
-    public <T> T fromJsonField(String field, String json, Class<T> cls) throws IOException {
+    public <T> T fromJsonField(String field, String json, Type cls) throws IOException {
         if (json == null) {
             return null;
         }
@@ -66,7 +74,7 @@ public class DJsonDecoder {
             jsonReader.beginObject();
             final String s = jsonReader.nextName();
             Preconditions.checkState(s.equals(field));
-            T target = gson.fromJson(jsonReader, (Type) cls);
+            T target = gson.fromJson(jsonReader, cls);
             jsonReader.endObject();
             return target;
         } catch (Exception e) {

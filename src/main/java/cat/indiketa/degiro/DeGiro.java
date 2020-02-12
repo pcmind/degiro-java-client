@@ -23,25 +23,18 @@ public interface DeGiro {
 
     DAccountInfo getAccountInfo() throws DeGiroException;
 
-    default List<DOrder> getOrders() throws DeGiroException {
-        return updateOrders(0).getAdded();
-    }
-
-    DOrders updateOrders(long lastUpdate) throws DeGiroException;
-
-    DPortfolioProducts updatePortfolio(long lastUpdate) throws DeGiroException;
-
-    DPortfolioSummaryUpdate updatePortfolioSummary(long lastUpdate) throws DeGiroException;
-
     /**
      * One show update multiple tables instead of multiple calls to remote api
      *
      * @param lastOrderUpdate last receive orders lastUpdated
      * @param lastPortfolioUpdate last receive portfolio lastUpdated
      * @param lastPortfolioSummaryUpdate last receive portfolioSummary lastUpdated
+     * @param lastHistoricalOrders last historical orders
+     * @param lastTransactions last transactions
+     * @param lastAlerts last alerts
      * @return
      */
-    DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate) throws DeGiroException ;
+    DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate, long lastHistoricalOrders, long lastTransactions, long lastAlerts) throws DeGiroException ;
 
     List<DOrderHistoryRecord> getOrdersHistory(Calendar from, Calendar to) throws DeGiroException;
 
