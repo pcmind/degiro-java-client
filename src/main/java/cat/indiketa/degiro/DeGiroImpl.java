@@ -580,6 +580,45 @@ public class DeGiroImpl implements DeGiro {
         return priceHistory;
     }
 
+    @Override
+    public List<Long> getFavorites() throws DeGiroException {
+        ensureLogged();
+        try {
+            DResponse response = comm.getUrlData(session.getConfig().getPaUrl(), "favourites?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
+            final List<Long> longs = gson.fromJsonData(getResponseData(response), new TypeToken<List<Long>>() {
+            }.getType());
+            return longs;
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking account information", e);
+        }
+    }
+
+    @Override
+    public void addFavorite(long productId) throws DeGiroException {
+        ensureLogged();
+        try {
+            final Map<String, Map<String, Object>> objectObjectHashMap = new HashMap<>();
+            final HashMap<String, Object> value = new HashMap<>();
+            value.put("productId", productId);
+            objectObjectHashMap.put("data", value);
+            DResponse response = comm.getUrlData(session.getConfig().getPaUrl(), "favourites?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), objectObjectHashMap);
+            getResponseData(response); //check for response error
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking account information", e);
+        }
+    }
+
+    @Override
+    public void deleteFavorite(long productId) throws DeGiroException {
+        ensureLogged();
+        try {
+            DResponse response = comm.getUrlData(session.getConfig().getPaUrl(), "favourites?productId=" + productId + "&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null, null, "DELETE");
+            getResponseData(response); //check for response error
+        } catch (IOException e) {
+            throw new DeGiroException("IOException while checking account information", e);
+        }
+    }
+
     private DResponse getGraph(String params) throws IOException {
                 /*
 requestid:  1

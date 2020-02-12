@@ -75,6 +75,12 @@ public interface DeGiro {
 
     DPriceHistory getPriceHistory(Long issueId) throws DeGiroException;
 
+    List<Long> getFavorites() throws DeGiroException;
+
+    void addFavorite(long productId) throws DeGiroException;
+
+    void deleteFavorite(long productId) throws DeGiroException;
+
     boolean isConnected();
 
     void close();
