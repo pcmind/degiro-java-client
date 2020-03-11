@@ -13,7 +13,9 @@ public enum DOrderType {
     MARKET_ORDER(2, "MARKET"),
     STOP_LOSS(3, "STOPLOSS"),
     LIMITED_STOP_LOSS(1, "STOPLIMIT"),
-    TRAILING_STOP(4, "TRAILINGSTOP");
+    TRAILING_STOP(4, "TRAILINGSTOP"),
+    STANDARD_SIZE(5, "STANDARDSIZE"),
+    STANDARD_AMOUNT(6, "STANDARDAMOUNT");
 
     private final int value;
     private final String strValue;

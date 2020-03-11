@@ -19,6 +19,7 @@ public enum DProductType {
     INVESTMENT_FUNDS(13),
     LEVERAGED_PRODUCTS(14),
     ETF(131),
+    CASH(311),
     CFD(535),
     WARRANTS(536);
 
