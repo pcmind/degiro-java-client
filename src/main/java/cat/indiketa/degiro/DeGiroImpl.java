@@ -290,7 +290,7 @@ public class DeGiroImpl implements DeGiro {
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
             HashMap<String, String> data = new HashMap();
             data.put("referrer", degiro.getBaseUrl());
-            DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/request_session?version=1.0.20170315&userToken=" + session.getClient().getId(), data, headers);
+            DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/request_session?version=1.0.20180305&userToken=" + session.getClient().getId(), data, headers);
             HashMap map = gson.fromJson(getResponseData(response), HashMap.class);
             session.setVwdSession((String) map.get("sessionId"));
             session.setLastVwdSessionUsed(System.currentTimeMillis());
