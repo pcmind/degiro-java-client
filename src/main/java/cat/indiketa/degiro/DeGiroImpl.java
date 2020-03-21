@@ -344,11 +344,6 @@ public class DeGiroImpl implements DeGiro {
         } catch (IOException e) {
             throw new DeGiroException("IOException while subscribing to issues", e);
         }
-
-        if (pricePoller == null) {
-            pricePoller = new Timer("Prices", true);
-            pricePoller.scheduleAtFixedRate(new DPriceTimerTask(), 0, pollingInterval);
-        }
     }
 
     @Override
