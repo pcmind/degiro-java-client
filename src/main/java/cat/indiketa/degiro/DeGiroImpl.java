@@ -3,6 +3,7 @@ package cat.indiketa.degiro;
 import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
 import cat.indiketa.degiro.exceptions.DUnauthorizedException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
+import cat.indiketa.degiro.exceptions.SessionExpiredException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
 import cat.indiketa.degiro.log.DLog;
@@ -340,7 +341,14 @@ public class DeGiroImpl implements DeGiro {
                     priceListener.priceChanged(price);
                 }
             }
+            session.setLastVwdSessionUsed(System.currentTimeMillis());
 
+        } catch (SessionExpiredException e) {
+            DLog.DEGIRO.error("Session "+session.getVwdSession()+" has expired");
+            session.setVwdSession(null);
+            session.setLastVwdSessionUsed(0);
+            //next update will update session
+            //not recursive to avoid stack overflow
         } catch (IOException e) {
             throw new DeGiroException("IOException while subscribing to issues", e);
         }

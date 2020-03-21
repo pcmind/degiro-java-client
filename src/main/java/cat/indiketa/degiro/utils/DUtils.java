@@ -1,5 +1,6 @@
 package cat.indiketa.degiro.utils;
 
+import cat.indiketa.degiro.exceptions.SessionExpiredException;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.*;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
@@ -417,13 +418,16 @@ public class DUtils {
         return transaction;
     }
 
-    public static List<DPrice> convert(List<DRawVwdPrice> data) {
+    public static List<DPrice> convert(List<DRawVwdPrice> data) throws SessionExpiredException {
 
         Set<String> issues = new HashSet<>(100);
         Map<String, String> dataMap = new HashMap<>(data.size());
 
         if (data != null) {
             for (DRawVwdPrice dRawVwdPrice : data) {
+                if ("sr".equals(dRawVwdPrice.getM())) {
+                    throw new SessionExpiredException("Renew session id is requiered");
+                }
 
                 if (Strings.nullToEmpty(dRawVwdPrice.getM()).equals("a_req")) {
                     String firstVal = dRawVwdPrice.getV().get(0);
