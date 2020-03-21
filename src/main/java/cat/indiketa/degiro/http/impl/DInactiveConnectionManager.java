@@ -1,10 +1,9 @@
 package cat.indiketa.degiro.http.impl;
 
-import java.util.concurrent.TimeUnit;
-
+import cat.indiketa.degiro.log.DLog;
 import org.apache.http.conn.HttpClientConnectionManager;
 
-import cat.indiketa.degiro.log.DLog;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -25,6 +24,9 @@ class DInactiveConnectionManager extends Thread {
     public void run() {
         while (!shutdown) {
             synchronized (this) {
+                if(shutdown) {
+                    return;
+                }
                 try {
                     wait(5000);
                     connectionManager.closeExpiredConnections();
