@@ -2,11 +2,28 @@ package cat.indiketa.degiro.utils;
 
 import cat.indiketa.degiro.exceptions.SessionExpiredException;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.*;
+import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
+import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLastTransactions.DTransaction;
-import cat.indiketa.degiro.model.raw.*;
+import cat.indiketa.degiro.model.DOrder;
+import cat.indiketa.degiro.model.DOrderAction;
+import cat.indiketa.degiro.model.DOrderTime;
+import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.model.DPortfolioProduct;
+import cat.indiketa.degiro.model.DPortfolioSummary;
+import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DUpdate;
+import cat.indiketa.degiro.model.DUpdates;
+import cat.indiketa.degiro.model.raw.DFieldValue;
+import cat.indiketa.degiro.model.raw.DRawCashFunds;
+import cat.indiketa.degiro.model.raw.DRawOrders;
+import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
+import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
+import cat.indiketa.degiro.model.raw.DRawTransactions;
+import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Doubles;
@@ -21,7 +38,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author indiketa
@@ -30,6 +55,7 @@ public class DUtils {
 
     private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat DATE_HM_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
     private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
@@ -455,8 +481,28 @@ public class DUtils {
             price.setBid(Doubles.tryParse(getData(issue, "BidPrice", dataMap)));
             price.setAsk(Doubles.tryParse(getData(issue, "AskPrice", dataMap)));
             price.setLast(Doubles.tryParse(getData(issue, "LastPrice", dataMap)));
+            price.setOpen(Doubles.tryParse(getData(issue, "OpenPrice", dataMap)));
+            price.setLow(Doubles.tryParse(getData(issue, "LowPrice", dataMap)));
+            price.setHigh(Doubles.tryParse(getData(issue, "HighPrice", dataMap)));
+            price.setPreviousClose(Doubles.tryParse(getData(issue, "PreviousClosePrice", dataMap)));
+            price.setBidVolume(Doubles.tryParse(getData(issue, "BidVolume", dataMap)));
+            price.setAskVolume(Doubles.tryParse(getData(issue, "AskVolume", dataMap)));
+            price.setCumulativeVolume(Doubles.tryParse(getData(issue, "CumulativeVolume", dataMap)));
+
+            price.setCombinedLastDateTime(getData(issue, "CombinedLastDateTime", dataMap));
+            price.setFullName(getData(issue, "FullName", dataMap));
+            // Format: 2020-01-24
+            final String lastDate = getData(issue, "LastDate", dataMap);
+            price.setLastDate(lastDate);
             String df = getData(issue, "LastTime", dataMap);
-            if (!Strings.isNullOrEmpty(df)) {
+            if(!Strings.isNullOrEmpty(df) && !Strings.isNullOrEmpty(lastDate)) {
+                final String source = lastDate + " " + df;
+                try {
+                    price.setLastTime(DATE_HM_FORMAT.parse(source));
+                }catch (ParseException e) {
+                    DLog.DEGIRO.warn("Exception parsing date time: " + source + " from issue " + issue);
+                }
+            }else if (!Strings.isNullOrEmpty(df)) {
                 try {
                     price.setLastTime(HM_FORMAT.parse(df));
                     Date d = new Date();

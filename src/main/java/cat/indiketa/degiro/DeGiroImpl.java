@@ -7,8 +7,35 @@ import cat.indiketa.degiro.exceptions.SessionExpiredException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
 import cat.indiketa.degiro.log.DLog;
-import cat.indiketa.degiro.model.*;
-import cat.indiketa.degiro.model.raw.*;
+import cat.indiketa.degiro.model.D400ErrorResponse;
+import cat.indiketa.degiro.model.DAccountInfo;
+import cat.indiketa.degiro.model.DCashFunds;
+import cat.indiketa.degiro.model.DClient;
+import cat.indiketa.degiro.model.DClientData;
+import cat.indiketa.degiro.model.DConfig;
+import cat.indiketa.degiro.model.DConfigDictionary;
+import cat.indiketa.degiro.model.DLastTransactions;
+import cat.indiketa.degiro.model.DLogin;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrder;
+import cat.indiketa.degiro.model.DOrderConfirmation;
+import cat.indiketa.degiro.model.DOrderHistory;
+import cat.indiketa.degiro.model.DOrderHistoryRecord;
+import cat.indiketa.degiro.model.DPlacedOrder;
+import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DPriceHistory;
+import cat.indiketa.degiro.model.DPriceListener;
+import cat.indiketa.degiro.model.DProductDescriptions;
+import cat.indiketa.degiro.model.DProductSearch;
+import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DTransactions;
+import cat.indiketa.degiro.model.DUpdates;
+import cat.indiketa.degiro.model.raw.DRawCashFunds;
+import cat.indiketa.degiro.model.raw.DRawOrders;
+import cat.indiketa.degiro.model.raw.DRawPortfolio;
+import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
+import cat.indiketa.degiro.model.raw.DRawTransactions;
+import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import cat.indiketa.degiro.utils.DUtils;
@@ -21,11 +48,17 @@ import org.apache.http.message.BasicHeader;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author indiketa
@@ -37,9 +70,30 @@ public class DeGiroImpl implements DeGiro {
     private final TrackConnection comm;
     private final DSession session;
     private final DJsonDecoder gson;
-    private final Map<String, Long> subscribedVwdIssues;
+    private final Map<String, String> subscribedVwdIssues;
     private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
+    final String[] vwdDatas = new String[]{
+            //"BidPrice",
+            //"AskPrice",
+            "LastPrice",
+            "OpenPrice",
+            "HighPrice",
+            "LowPrice",
+            //"PreviousClosePrice",
+
+            //"BidVolume",
+            //"AskVolume",
+            //"CumulativeVolume",
+
+            // format: 21:59:58
+            "LastTime",
+            // Format: 2020-01-24
+            "LastDate",
+            //"CombinedLastDateTime",
+
+            "FullName",
+    };
 
     private DPriceListener priceListener;
     //must be set just after login
@@ -280,9 +334,7 @@ public class DeGiroImpl implements DeGiro {
         try {
 
             for (String issueId : vwdIssueId) {
-                if (!subscribedVwdIssues.containsKey(issueId)) {
-                    subscribedVwdIssues.put(issueId, null);
-                }
+                subscribedVwdIssues.putIfAbsent(issueId, null);
             }
 
             requestPriceUpdate();
@@ -299,28 +351,52 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
+    /**
+     * Register on remote host for updates on selected subscribedVwdIssues.
+     * After registering with POST request only a GET is needed
+     * @throws DeGiroException
+     * @throws IOException
+     */
     private void requestPriceUpdate() throws DeGiroException, IOException {
-        ensureVwdSession();
+
         List<Header> headers = new ArrayList<>(1);
         headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
 
-        Object data = generatePriceRequestPayload(subscribedVwdIssues.entrySet().stream().filter(e -> e.getValue() != null && e.getValue() > pollingInterval).map(Map.Entry::getKey));
+        final List<String> pending = subscribedVwdIssues
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() == null || !e.getValue().equals(session.getVwdSession()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
 
-        DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), data, headers);
-        getResponseData(response);
-        session.setLastVwdSessionUsed(System.currentTimeMillis());
+        if (!pending.isEmpty()) {
+            pending.forEach(i -> subscribedVwdIssues.put(i, session.getVwdSession()));
+            Object data = generatePriceRequestPayload(pending);
+            ensureVwdSession();
+            DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), data, headers);
+            getResponseData(response);
+            session.setLastVwdSessionUsed(System.currentTimeMillis());
+        }
 
     }
 
-    private Object generatePriceRequestPayload(Stream<String> subscribedVwdIssues) {
-        StringBuilder requestedIssues = new StringBuilder();
-        subscribedVwdIssues.forEach(issueId -> {
-            requestedIssues.append("req(X.BidPrice);req(X.AskPrice);req(X.LastPrice);req(X.LastTime);".replace("X", issueId + ""));
-        });
+    private Object generatePriceRequestPayload(List<String> subscribedVwdIssues) {
+        final String subscribeUnsubscribe = getString(subscribedVwdIssues, true);
         HashMap<String, String> data = new HashMap<>();
-        data.put("controlData", requestedIssues.toString());
+        data.put("controlData", subscribeUnsubscribe);
         return data;
 
+    }
+
+    private String getString(List<String> subscribedVwdIssues, boolean subscribe) {
+        final String str = subscribe ? "req(" : "rel(";
+        StringBuilder requestedIssues = new StringBuilder();
+        subscribedVwdIssues.forEach(issueId -> {
+            for (String vwdData : vwdDatas) {
+                requestedIssues.append(str).append(issueId).append(".").append(vwdData).append(");");
+            }
+        });
+        return requestedIssues.toString();
     }
 
     private void checkPriceChanges() throws DeGiroException {
