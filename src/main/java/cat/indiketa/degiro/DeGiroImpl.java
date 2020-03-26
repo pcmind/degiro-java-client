@@ -73,27 +73,9 @@ public class DeGiroImpl implements DeGiro {
     private final Map<String, String> subscribedVwdIssues;
     private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
-    final String[] vwdDatas = new String[]{
-            //"BidPrice",
-            //"AskPrice",
-            "LastPrice",
-            "OpenPrice",
-            "HighPrice",
-            "LowPrice",
-            //"PreviousClosePrice",
 
-            //"BidVolume",
-            //"AskVolume",
-            //"CumulativeVolume",
+    private final VwdPriceBatchDecoder vwdDecoder = new VwdPriceBatchDecoder();
 
-            // format: 21:59:58
-            "LastTime",
-            // Format: 2020-01-24
-            "LastDate",
-            //"CombinedLastDateTime",
-
-            "FullName",
-    };
 
     private DPriceListener priceListener;
     //must be set just after login
@@ -276,16 +258,13 @@ public class DeGiroImpl implements DeGiro {
         if (session.getVwdSession() == null || session.getLastVwdSessionUsed() == 0 || (System.currentTimeMillis() - session.getLastVwdSessionUsed()) > TimeUnit.SECONDS.toMillis(15)) {
             DLog.DEGIRO.info("Renewing VWD session");
             renewVwdSession();
-            if (!subscribedVwdIssues.isEmpty()) {
-                subscribeToPrice(subscribedVwdIssues.keySet());
-            }
-
         }
     }
 
     private void renewVwdSession() throws DeGiroException {
 
         try {
+            vwdDecoder.resetState();
             List<Header> headers = new ArrayList<>(1);
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
             HashMap<String, String> data = new HashMap();
@@ -337,7 +316,7 @@ public class DeGiroImpl implements DeGiro {
                 subscribedVwdIssues.putIfAbsent(issueId, null);
             }
 
-            requestPriceUpdate();
+            ensurePriceUpdateSubscription();
             DLog.DEGIRO.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIssueId));
 
         } catch (IOException e) {
@@ -357,11 +336,8 @@ public class DeGiroImpl implements DeGiro {
      * @throws DeGiroException
      * @throws IOException
      */
-    private void requestPriceUpdate() throws DeGiroException, IOException {
-
-        List<Header> headers = new ArrayList<>(1);
-        headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
-
+    private void ensurePriceUpdateSubscription() throws DeGiroException, IOException {
+        //compute missing subscription
         final List<String> pending = subscribedVwdIssues
                 .entrySet()
                 .stream()
@@ -370,6 +346,8 @@ public class DeGiroImpl implements DeGiro {
                 .collect(Collectors.toList());
 
         if (!pending.isEmpty()) {
+            List<Header> headers = new ArrayList<>(1);
+            headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
             pending.forEach(i -> subscribedVwdIssues.put(i, session.getVwdSession()));
             Object data = generatePriceRequestPayload(pending);
             ensureVwdSession();
@@ -392,7 +370,7 @@ public class DeGiroImpl implements DeGiro {
         final String str = subscribe ? "req(" : "rel(";
         StringBuilder requestedIssues = new StringBuilder();
         subscribedVwdIssues.forEach(issueId -> {
-            for (String vwdData : vwdDatas) {
+            for (String vwdData : vwdDecoder.getSupportedFields()) {
                 requestedIssues.append(str).append(issueId).append(".").append(vwdData).append(");");
             }
         });
@@ -403,14 +381,14 @@ public class DeGiroImpl implements DeGiro {
         ensureVwdSession();
 
         try {
-            requestPriceUpdate();
+            ensurePriceUpdateSubscription();
             List<Header> headers = new ArrayList<>(1);
             headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
 
             DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + session.getVwdSession(), null, headers);
             List<DRawVwdPrice> data = gson.fromJson(getResponseData(response), rawPriceData);
 
-            List<DPrice> prices = DUtils.convert(data);
+            List<DPrice> prices = vwdDecoder.decode(data);
 
             if (priceListener != null) {
                 for (DPrice price : prices) {
@@ -780,6 +758,7 @@ tz:         Europe/Madrid
         if (pricePoller != null) {
             pricePoller.cancel();
             pricePoller = null;
+            vwdDecoder.resetState();
         }
     }
 

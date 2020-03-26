@@ -1,6 +1,5 @@
 package cat.indiketa.degiro.utils;
 
-import cat.indiketa.degiro.exceptions.SessionExpiredException;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
@@ -12,7 +11,6 @@ import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DPortfolioProduct;
 import cat.indiketa.degiro.model.DPortfolioSummary;
-import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DUpdate;
 import cat.indiketa.degiro.model.DUpdates;
@@ -23,10 +21,8 @@ import cat.indiketa.degiro.model.raw.DRawPortfolio;
 import cat.indiketa.degiro.model.raw.DRawPortfolio.Value;
 import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
 import cat.indiketa.degiro.model.raw.DRawTransactions;
-import cat.indiketa.degiro.model.raw.DRawVwdPrice;
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
-import com.google.common.primitives.Doubles;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -42,21 +38,16 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author indiketa
  */
 public class DUtils {
 
-    private static final SimpleDateFormat HM_FORMAT = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    private static final SimpleDateFormat DATE_HM_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    private static final SimpleDateFormat DATE_FORMAT2 = new SimpleDateFormat("dd-MM-yyyy");
     private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     public static DUpdates.DLastUpdate<List<DUpdate<DPortfolioProduct, String>>> convert(DRawPortfolio rawPortfolio) {
@@ -442,99 +433,6 @@ public class DUtils {
 
         }
         return transaction;
-    }
-
-    public static List<DPrice> convert(List<DRawVwdPrice> data) throws SessionExpiredException {
-
-        Set<String> issues = new HashSet<>(100);
-        Map<String, String> dataMap = new HashMap<>(data.size());
-
-        if (data != null) {
-            for (DRawVwdPrice dRawVwdPrice : data) {
-                if ("sr".equals(dRawVwdPrice.getM())) {
-                    throw new SessionExpiredException("Renew session id is requiered");
-                }
-
-                if (Strings.nullToEmpty(dRawVwdPrice.getM()).equals("a_req")) {
-                    String firstVal = dRawVwdPrice.getV().get(0);
-                    issues.add(firstVal.substring(0, firstVal.lastIndexOf(".")));
-
-                }
-
-                if (dRawVwdPrice.getV() != null && !dRawVwdPrice.getV().isEmpty()) {
-                    String v2 = null;
-
-                    if (dRawVwdPrice.getV().size() > 1) {
-                        v2 = dRawVwdPrice.getV().get(1);
-                    }
-
-                    dataMap.put(dRawVwdPrice.getV().get(0), v2);
-                }
-            }
-        }
-
-        List<DPrice> prices = new ArrayList<>(issues.size());
-
-        for (String issue : issues) {
-            DPrice price = new DPrice();
-            price.setIssueId(issue);
-            price.setBid(Doubles.tryParse(getData(issue, "BidPrice", dataMap)));
-            price.setAsk(Doubles.tryParse(getData(issue, "AskPrice", dataMap)));
-            price.setLast(Doubles.tryParse(getData(issue, "LastPrice", dataMap)));
-            price.setOpen(Doubles.tryParse(getData(issue, "OpenPrice", dataMap)));
-            price.setLow(Doubles.tryParse(getData(issue, "LowPrice", dataMap)));
-            price.setHigh(Doubles.tryParse(getData(issue, "HighPrice", dataMap)));
-            price.setPreviousClose(Doubles.tryParse(getData(issue, "PreviousClosePrice", dataMap)));
-            price.setBidVolume(Doubles.tryParse(getData(issue, "BidVolume", dataMap)));
-            price.setAskVolume(Doubles.tryParse(getData(issue, "AskVolume", dataMap)));
-            price.setCumulativeVolume(Doubles.tryParse(getData(issue, "CumulativeVolume", dataMap)));
-
-            price.setCombinedLastDateTime(getData(issue, "CombinedLastDateTime", dataMap));
-            price.setFullName(getData(issue, "FullName", dataMap));
-            // Format: 2020-01-24
-            final String lastDate = getData(issue, "LastDate", dataMap);
-            price.setLastDate(lastDate);
-            String df = getData(issue, "LastTime", dataMap);
-            if(!Strings.isNullOrEmpty(df) && !Strings.isNullOrEmpty(lastDate)) {
-                final String source = lastDate + " " + df;
-                try {
-                    price.setLastTime(DATE_HM_FORMAT.parse(source));
-                }catch (ParseException e) {
-                    DLog.DEGIRO.warn("Exception parsing date time: " + source + " from issue " + issue);
-                }
-            }else if (!Strings.isNullOrEmpty(df)) {
-                try {
-                    price.setLastTime(HM_FORMAT.parse(df));
-                    Date d = new Date();
-                    price.getLastTime().setDate(1);
-                    price.getLastTime().setYear(d.getYear());
-                    price.getLastTime().setMonth(d.getMonth());
-                    price.getLastTime().setDate(d.getDate());
-                    if (price.getLastTime().getTime() > System.currentTimeMillis()) {
-                        price.getLastTime().setTime(price.getLastTime().getTime() - 1 * 24 * 60 * 60 * 1000);
-                    }
-                } catch (ParseException e) {
-                    DLog.DEGIRO.warn("Exception parsing lastTime: " + df + " from issue " + issue);
-                }
-            }
-
-            prices.add(price);
-        }
-
-        return prices;
-
-    }
-
-    private static String getData(String issue, String name, Map<String, String> dataMap) {
-
-        String retVal = "";
-
-        if (dataMap.containsKey(issue + "." + name)) {
-            retVal = Strings.nullToEmpty(dataMap.get(dataMap.get(issue + "." + name)));
-        }
-
-        return retVal;
-
     }
 
     public static class ProductTypeAdapter extends TypeAdapter<DProductType> {
