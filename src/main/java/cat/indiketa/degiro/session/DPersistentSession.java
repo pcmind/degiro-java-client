@@ -47,9 +47,7 @@ public class DPersistentSession extends DSession {
                     if (ds != null) {
                         config = ds.config;
                         client = ds.client;
-                        vwdSession = ds.vwdSession;
                         cookies = ds.cookies;
-                        lastVwdSessionUsed = ds.lastVwdSessionUsed;
                         DLog.DEGIRO.info("Permanent session storage loaded (" + file.length() + " bytes).");
                     }
                 }
@@ -89,12 +87,6 @@ public class DPersistentSession extends DSession {
     }
 
     @Override
-    public void setVwdSession(String vwdSession) {
-        super.setVwdSession(vwdSession);
-        saveSession();
-    }
-
-    @Override
     public void setClient(DClient client) {
         super.setClient(client);
         saveSession();
@@ -105,12 +97,4 @@ public class DPersistentSession extends DSession {
         super.setConfig(config);
         saveSession();
     }
-
-    @Override
-    public void setLastVwdSessionUsed(long lastVwdSessionUsed) {
-        super.setLastVwdSessionUsed(lastVwdSessionUsed);
-        saveSession();
-    }
-
-    
 }

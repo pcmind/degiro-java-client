@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-class VwdPriceBatchDecoderTest {
+class DVwdPriceDecoderTest {
     private static final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
     }.getType();
 
@@ -78,7 +78,7 @@ class VwdPriceBatchDecoderTest {
                 "{\"m\":\"un\",\"v\":[134276,100]}," +
                 "{\"m\":\"un\",\"v\":[134275,100]}" +
                 "]";
-        final VwdPriceBatchDecoder vwdDecoder = new VwdPriceBatchDecoder();
+        final DVwdPriceDecoder vwdDecoder = new DVwdPriceDecoder();
 
         final List<DPrice> convert = vwdDecoder.decode(fromJson(data));
         final ArrayList<DPrice> expected = Lists.newArrayList(
@@ -148,7 +148,7 @@ class VwdPriceBatchDecoderTest {
     void decodeHidleMEssage() throws IOException, SessionExpiredException {
 
         final List<DRawVwdPrice> data = fromJson("[{\"m\":\"h\"}]");
-        final VwdPriceBatchDecoder vwdDecoder = new VwdPriceBatchDecoder();
+        final DVwdPriceDecoder vwdDecoder = new DVwdPriceDecoder();
         final List<DPrice> decode = vwdDecoder.decode(data);
         Assertions.assertEquals(0, decode.size());
     }
@@ -156,7 +156,7 @@ class VwdPriceBatchDecoderTest {
     @Test
     void decodeNewSession() throws IOException {
         final List<DRawVwdPrice> data = fromJson("[{\"m\":\"sr\"}]");
-        final VwdPriceBatchDecoder vwdDecoder = new VwdPriceBatchDecoder();
+        final DVwdPriceDecoder vwdDecoder = new DVwdPriceDecoder();
         Assertions.assertThrows(SessionExpiredException.class, () -> vwdDecoder.decode(data));
     }
 }

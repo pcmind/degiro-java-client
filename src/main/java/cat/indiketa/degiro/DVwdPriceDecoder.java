@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * Non thread safe price event batch decoder.
  */
-public class VwdPriceBatchDecoder {
+public class DVwdPriceDecoder {
     private static final DateTimeFormatter HM_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -57,7 +57,7 @@ public class VwdPriceBatchDecoder {
             "FullName"
     );
 
-    private final Map<String, BiConsumer<String, DPrice>> MAP_FIELDS = ImmutableMap.<String, BiConsumer<String, DPrice>>builder()
+    private static final Map<String, BiConsumer<String, DPrice>> MAP_FIELDS = ImmutableMap.<String, BiConsumer<String, DPrice>>builder()
             .put("BidPrice", (value, price) -> price.setBid(Doubles.tryParse(value)))
             .put("AskPrice", (value, price) -> price.setAsk(Doubles.tryParse(value)))
             .put("LastPrice", (value, price) -> price.setLast(Doubles.tryParse(value)))

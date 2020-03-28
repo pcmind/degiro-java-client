@@ -18,10 +18,6 @@ public class DSession {
     @Expose
     protected DClient client;
     @Expose
-    protected String vwdSession;
-    @Expose
-    protected long lastVwdSessionUsed;
-    @Expose
     protected List<BasicClientCookie> cookies;
 
     public DConfig getConfig() {
@@ -30,10 +26,6 @@ public class DSession {
 
     public DClient getClient() {
         return client;
-    }
-
-    public String getVwdSession() {
-        return vwdSession;
     }
 
     public List<BasicClientCookie> getCookies() {
@@ -60,7 +52,6 @@ public class DSession {
     public void clearSession() {
         config = null;
         client = null;
-        vwdSession = null;
         cookies = null;
     }
 
@@ -72,20 +63,7 @@ public class DSession {
         this.client = client;
     }
 
-    public void setVwdSession(String vwdSession) {
-        this.vwdSession = vwdSession;
-    }
-
     public void setCookies(List<BasicClientCookie> cookies) {
         this.cookies = cookies;
     }
-
-    public long getLastVwdSessionUsed() {
-        return lastVwdSessionUsed;
-    }
-
-    public void setLastVwdSessionUsed(long lastVwdSessionUsed) {
-        this.lastVwdSessionUsed = lastVwdSessionUsed;
-    }
-
 }
