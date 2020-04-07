@@ -3,11 +3,10 @@ package cat.indiketa.degiro.model;
 import lombok.Data;
 
 /**
- *
  * @author indiketa
  */
 @Data
-public class DConfig {
+public class DConfig implements IValidable {
 
     private String tradingUrl;
     private Integer clientId;
@@ -27,4 +26,24 @@ public class DConfig {
     private String productTypesUrl;
     private String vwdNewsUrl;
 
+    @Override
+    public boolean isInvalid() {
+        return tradingUrl == null ||
+                clientId == null ||
+                i18nUrl == null ||
+                paymentServiceUrl == null ||
+                reportingUrl == null ||
+                paUrl == null ||
+                vwdQuotecastServiceUrl == null ||
+                sessionId == null ||
+                productSearchUrl == null ||
+                dictionaryUrl == null ||
+                taskManagerUrl == null ||
+                firstLoginWizardUrl == null ||
+                loginUrl == null ||
+                vwdGossipsUrl == null ||
+                companiesServiceUrl == null ||
+                productTypesUrl == null ||
+                vwdNewsUrl == null;
+    }
 }

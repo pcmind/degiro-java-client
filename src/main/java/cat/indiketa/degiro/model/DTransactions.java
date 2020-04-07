@@ -9,11 +9,16 @@ import java.util.List;
  * @author indiketa
  */
 @Data
-public class DTransactions {
+public class DTransactions implements IValidable {
 
     private List<DTransaction> data = null;
     private long status;
     private String statusText;
+
+    @Override
+    public boolean isInvalid() {
+        return data == null;
+    }
 
     @Data
     public static class DTransaction {

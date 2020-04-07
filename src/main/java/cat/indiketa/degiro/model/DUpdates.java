@@ -15,7 +15,7 @@ public class DUpdates {
     //UNKNOWN SCHEMA
     DLastUpdate transactions;
     //UNKNOWN SCHEMA
-    DLastUpdate alerts;
+    DLastUpdate<List<DUpdate<DAlert, String>>> alerts;
 
     @Value(staticConstructor = "of")
     public static class DLastUpdate<T> {

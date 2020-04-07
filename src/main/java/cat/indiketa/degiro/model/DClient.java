@@ -7,7 +7,7 @@ import lombok.Data;
  * @author indiketa
  */
 @Data
-public class DClient {
+public class DClient implements IValidable {
 
     private long id;
     private long intAccount;
@@ -32,6 +32,12 @@ public class DClient {
     private boolean isWithdrawalAvailable;
     private boolean isCollectivePortfolio;
     private boolean isAmClientActive;
+
+    @Override
+    public boolean isInvalid() {
+        return id == 0 || intAccount == 0 || clientRole == null || username == null || email == null;
+    }
+
     @Data
     public static class Address {
 

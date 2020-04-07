@@ -1,6 +1,7 @@
 package cat.indiketa.degiro.utils;
 
 import cat.indiketa.degiro.log.DLog;
+import cat.indiketa.degiro.model.DAlert;
 import cat.indiketa.degiro.model.DCashFunds;
 import cat.indiketa.degiro.model.DCashFunds.DCashFund;
 import cat.indiketa.degiro.model.DLastTransactions;
@@ -15,6 +16,7 @@ import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DUpdate;
 import cat.indiketa.degiro.model.DUpdates;
 import cat.indiketa.degiro.model.raw.DFieldValue;
+import cat.indiketa.degiro.model.raw.DRawAlerts;
 import cat.indiketa.degiro.model.raw.DRawCashFunds;
 import cat.indiketa.degiro.model.raw.DRawOrders;
 import cat.indiketa.degiro.model.raw.DRawPortfolio;
@@ -433,6 +435,41 @@ public class DUtils {
 
         }
         return transaction;
+    }
+
+    public static DUpdates.DLastUpdate<List<DUpdate<DAlert, String>>> convert(DRawAlerts dRawAlerts) {
+        final List<DUpdate<DAlert, String>> updates = new ArrayList<>();
+        final DRawAlerts.Alerts alerts = dRawAlerts.getAlerts();
+        for (Value value : alerts.getValue()) {
+            if (value.getIsRemoved()) {
+                updates.add(DUpdate.ofDelete(value.getId()));
+            } else {
+                if (value.getIsAdded()) {
+                    updates.add(DUpdate.ofCreate(value.getId(), () -> convertAlert(value)));
+                } else {
+                    updates.add(DUpdate.ofUpdate(value.getId(), r -> applyChangesToAlert(value, r)));
+                }
+            }
+        }
+        return DUpdates.DLastUpdate.of(alerts.getLastUpdated(), updates);
+    }
+
+    private static void applyChangesToAlert(Value row, DAlert r) {
+        for (DFieldValue value : row.getValue()) {
+            switch (value.getName()) {
+                case "id":
+                    r.setId((long) (double) value.getValue());
+                    return;
+                case "text":
+                    r.setText(((String) value.getValue()));
+            }
+        }
+    }
+
+    private static DAlert convertAlert(Value value) {
+        final DAlert r = new DAlert();
+        applyChangesToAlert(value, r);
+        return r;
     }
 
     public static class ProductTypeAdapter extends TypeAdapter<DProductType> {

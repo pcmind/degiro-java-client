@@ -2,10 +2,11 @@ package cat.indiketa.degiro.model;
 
 import lombok.Data;
 
+import java.util.Collection;
 import java.util.List;
 
 @Data
-public class DConfigDictionary {
+public class DConfigDictionary implements IValidable {
     private List<DStockCountry> stockCountries;
     //private List<?> bondExchanges;
     //private List<?> bondIssuerTypes;
@@ -37,8 +38,25 @@ public class DConfigDictionary {
     //private List<?> optionSortColumns;
     //private List<?> warrantSortColumns;
 
+    @Override
+    public boolean isInvalid() {
+        return isInvalid(stockCountries) || isInvalid(exchanges) || isInvalid(regions) || isInvalid(productTypes);
+    }
+
+    private boolean isInvalid(Collection<? extends IValidable> v) {
+        if (v == null || v.isEmpty()) {
+            return true;
+        }
+        for (IValidable iValidable : v) {
+            if (iValidable.isInvalid()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Data
-    public static class DExchange {
+    public static class DExchange implements IValidable {
         long id;
         String name;
         String code;
@@ -46,31 +64,53 @@ public class DConfigDictionary {
         String country;
         String city;
         String micCode;
+
+        @Override
+        public boolean isInvalid() {
+            return id == 0 || name == null;
+        }
     }
 
     @Data
-    public static class DRegion {
+    public static class DRegion implements IValidable {
         long id;
         String name;
         String translation;
+
+        @Override
+        public boolean isInvalid() {
+            return id == 0 || name == null;
+        }
     }
 
     /**
      *
      */
     @Data
-    public static class DProductType {
+    public static class DProductType implements IValidable {
         long id;
         String name;
         String translation;
         String briefTranslation;
         String contractType;
+
+        @Override
+        public boolean isInvalid() {
+            return id == 0 || name == null || contractType == null;
+        }
     }
 
     @Data
-    public static class DStockCountry {
+    public static class DStockCountry implements IValidable {
         long id;
         long country;
         long[] indices;
+
+        @Override
+        public boolean isInvalid() {
+            return id == 0 || country == 0;
+        }
     }
+
+
 }
