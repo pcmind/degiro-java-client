@@ -4,7 +4,7 @@ import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.model.*;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -36,9 +36,9 @@ public interface DeGiro {
      */
     DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate, long lastHistoricalOrders, long lastTransactions, long lastAlerts) throws DeGiroException ;
 
-    List<DOrderHistoryRecord> getOrdersHistory(Calendar from, Calendar to) throws DeGiroException;
+    List<DOrderHistoryRecord> getOrdersHistory(LocalDate from, LocalDate to) throws DeGiroException;
 
-    DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException;
+    List<DTransaction> getTransactions(LocalDate from, LocalDate to) throws DeGiroException;
 
     void setPriceListener(DPriceListener priceListener);
 

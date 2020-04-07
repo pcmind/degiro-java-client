@@ -1,12 +1,12 @@
 package cat.indiketa.degiro.model;
 
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.util.Calendar;
 
-import lombok.Data;
-
 @Data
-public class DOrderHistoryRecord {
+public class DOrderHistoryRecord implements IValidable {
     private Calendar created;
     private String orderId;
     private long productId;
@@ -22,6 +22,11 @@ public class DOrderHistoryRecord {
     private Status status;
     private Calendar last;
     private boolean isActive;
+
+    @Override
+    public boolean isInvalid() {
+        return productId == 0 || orderId == null || created == null;
+    }
 
 
     public static enum Type {

@@ -1,19 +1,31 @@
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
+import cat.indiketa.degiro.exceptions.DValidationException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
-import cat.indiketa.degiro.model.*;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrderAction;
+import cat.indiketa.degiro.model.DOrderConfirmation;
+import cat.indiketa.degiro.model.DOrderHistoryRecord;
+import cat.indiketa.degiro.model.DOrderTime;
+import cat.indiketa.degiro.model.DOrderType;
+import cat.indiketa.degiro.model.DProductDescription;
+import cat.indiketa.degiro.model.DProductSearch;
+import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DTransaction;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import com.google.gson.Gson;
 import org.apache.http.Header;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -35,13 +47,123 @@ class DeGiroImplItTest {
 
     @Test
     void getAccountInfoSuccess() throws DeGiroException {
-        setUpdaIntResponse();
+        setupLoginResponse();
         deGiro.getAccountInfo();
     }
 
     @Test
+    void getValidTransactions() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/reporting/secure/")
+                .setUri("v4/transactions?orderId=&product=&fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .andReply(200, "{\"data\":[{\"id\":1111111,\"productId\":222222,\"date\":\"2020-03-09T19:02:05+01:00\",\"buysell\":\"S\",\"price\":620.0000,\"quantity\":-1,\"total\":620.0000000000,\"orderTypeId\":0,\"counterParty\":\"MK\",\"transfered\":false,\"fxRate\":1.1476,\"totalInBaseCurrency\":540.23600800000000000,\"feeInBaseCurrency\":-0.50,\"totalPlusFeeInBaseCurrency\":539.73600800000000000}]}");
+
+        //when
+        final LocalDate from = LocalDate.parse("2020-04-06");
+        final LocalDate to = LocalDate.parse("2020-04-07");
+        final List<DTransaction> transactions1 = deGiro.getTransactions(from, to);
+
+        //then
+        assertEquals(1, transactions1.size());
+        final DTransaction dTransaction = transactions1.get(0);
+        assertEquals(1111111, dTransaction.getId());
+        assertEquals(222222, dTransaction.getProductId());
+        assertEquals(DOrderAction.SELL, dTransaction.getBuysell());
+    }
+
+    @Test
+    void invalidTransactions() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/reporting/secure/")
+                .setUri("v4/transactions?orderId=&product=&fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .andReply(200, "{\"other\":\"hello\"}");
+
+        //when
+        final LocalDate from = LocalDate.parse("2020-04-06");
+        final LocalDate to = LocalDate.parse("2020-04-07");
+        Assertions.assertThrows(DValidationException.class, () -> {
+            deGiro.getTransactions(from, to);
+        });
+    }
+
+    @Test
+    void getValidOrderHistory() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/reporting/secure/")
+                .setUri("v4/order-history?fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .andReply(200, "{\"data\":[{\"created\":\"2020-03-30T14:04:54+01:00\",\"orderId\":\"2b1b2b3d-8f02-41d3-984e-f22ac90bda2b\",\"productId\":181116,\"size\":240.0000,\"price\":2.0100,\"buysell\":\"S\"," +
+                        "\"orderTypeId\":0,\"orderTimeTypeId\":1,\"stopPrice\":0.0000,\"currentTradedSize\":0,\"totalTradedSize\":0,\"type\":\"CREATE\",\"status\":\"CONFIRMED\",\"last\":\"2020-03-30T14:05:54+02:00\",\"isActive\":false}," +
+                        "{\"created\":\"2020-03-30T14:05:30+02:00\",\"orderId\":\"2b4b1b2d-8f02-42d3-934e-f12ac30bca2b\",\"productId\":111116,\"size\":240.0000,\"price\":2.0100,\"buysell\":\"S\"," +
+                        "\"orderTypeId\":0,\"orderTimeTypeId\":1,\"stopPrice\":0.0000,\"currentTradedSize\":0,\"totalTradedSize\":0,\"type\":\"DELETE\",\"status\":\"CONFIRMED\",\"last\":\"2020-03-30T14:04:30+02:00\",\"isActive\":false}]}");
+
+        //when
+        final LocalDate from = LocalDate.parse("2020-04-06");
+        final LocalDate to = LocalDate.parse("2020-04-07");
+        final List<DOrderHistoryRecord> transactions1 = deGiro.getOrdersHistory(from, to);
+
+        //then
+        assertEquals(2, transactions1.size());
+        final DOrderHistoryRecord dTransaction = transactions1.get(0);
+        assertEquals("2b1b2b3d-8f02-41d3-984e-f22ac90bda2b", dTransaction.getOrderId());
+        assertEquals(181116, dTransaction.getProductId());
+        assertEquals(DOrderAction.SELL, dTransaction.getBuysell());
+        assertEquals(DOrderTime.DAY, dTransaction.getOrderTimeTypeId());
+        assertEquals(DOrderType.LIMITED, dTransaction.getOrderTypeId());
+        assertEquals(DOrderHistoryRecord.Status.CONFIRMED, dTransaction.getStatus());
+        assertEquals(DOrderHistoryRecord.Type.CREATE, dTransaction.getType());
+    }
+
+    @Test
+    void validSearch() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/product_search/secure/")
+                .setUri("v5/products/lookup?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2&searchText=VIAC&productTypeId=1&limit=1&offset=0")
+                .setMethod("GET")
+                .andReply(200, "{\"offset\": 0,\"products\": [{\"id\": \"d-129867\",\"name\": \"VIACOMCBS INC.B   DL-,001\",\"isin\": \"US92553P2011\"," +
+                        "\"symbol\": \"VCX\",\"contractSize\": 1.000000,\"productType\": \"STOCK\",\"productTypeId\": 1,\"tradable\": true,\"category\": \"D\"," +
+                        "\"currency\": \"EUR\",\"exchangeId\": \"195\",\"orderTimeTypes\": [\"DAY\",\"GTC\"],\"gtcAllowed\": true," +
+                        "\"buyOrderTypes\": [\"LIMIT\",\"MARKET\",\"STOPLOSS\",\"STOPLIMIT\",\"TRAILINGSTOP\"]," +
+                        "\"sellOrderTypes\": [\"LIMIT\",\"MARKET\",\"STOPLOSS\",\"STOPLIMIT\",\"TRAILINGSTOP\"],\"marketAllowed\": true," +
+                        "\"limitHitOrderAllowed\": false,\"stoplossAllowed\": true,\"stopLimitOrderAllowed\": true,\"joinOrderAllowed\": false," +
+                        "\"trailingStopOrderAllowed\": true,\"combinedOrderAllowed\": false,\"sellAmountAllowed\": false,\"isFund\": false," +
+                        "\"feedQuality\": \"R\",\"orderBookDepth\": 0,\"vwdIdentifierType\": \"issueid\",\"vwdId\": \"150014099\"," +
+                        "\"qualitySwitchable\": false,\"qualitySwitchFree\": false,\"vwdModuleId\": 25}]}");
+        //when
+        final DProductSearch us92553P2011 = deGiro.searchProducts("VIAC", DProductType.SHARES, 1, 0);
+        //then
+        assertEquals(1, us92553P2011.getProducts().size());
+        final DProductDescription prod = us92553P2011.getProducts().get(0);
+        assertEquals("VCX", prod.getSymbol());
+        assertEquals(5, prod.getBuyOrderTypes().size());
+    }
+
+    @Test
+    void emptySearch() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/product_search/secure/")
+                .setUri("v5/products/lookup?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2&searchText=VIAC&productTypeId=1&limit=1&offset=0")
+                .setMethod("GET")
+                .andReply(200, "{\"offset\":0}");
+        //when
+        final DProductSearch search = deGiro.searchProducts("VIAC", DProductType.SHARES, 1, 0);
+        //then
+        assertEquals(0, search.getProducts().size());
+    }
+
+    @Test
     void marketOrder() throws DeGiroException {
-        setUpdaIntResponse();
+        //given
+        setupLoginResponse();
         prepareResponse()
                 .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .setMethod("POST")
@@ -52,6 +174,7 @@ class DeGiroImplItTest {
                 .setMethod("POST")
                 .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":999999,\"size\":1,\"timeType\":1}"))
                 .andReply(300, "");
+        //when/then
         //this should fail because of return code 300
         assertThrows(DeGiroException.class, () ->  deGiro.checkOrder(new DNewOrder(DOrderAction.SELL,
                 DOrderType.MARKET_ORDER,
@@ -60,7 +183,7 @@ class DeGiroImplItTest {
                 1,
                 null,
                 null)));
-
+        //when/then
         final DOrderConfirmation dOrderConfirmation = deGiro.checkOrder(new DNewOrder(DOrderAction.SELL,
                 DOrderType.MARKET_ORDER,
                 DOrderTime.DAY,
@@ -72,7 +195,7 @@ class DeGiroImplItTest {
 
     }
 
-    private void setUpdaIntResponse() {
+    private void setupLoginResponse() {
         prepareSuccessLogin();
         prepareSuccessSecureConfig();
         prepareSuccessSecureAccount();
@@ -603,7 +726,10 @@ class DeGiroImplItTest {
     }
 
     private void prepareSuccessLogin() {
-        prepareResponse().setUri("/login/secure/login").setMethod("POST").andReply(200, "ok", () -> session.getCookies().add(new BasicClientCookie("JSESSIONID", "111111111111111111111111111111.prod_b_112_2")));
+        prepareResponse()
+                .setUri("/login/secure/login")
+                .setMethod("POST")
+                .andReply(200, "ok", () -> session.getCookies().add(new BasicClientCookie("JSESSIONID", "111111111111111111111111111111.prod_b_112_2")));
     }
 
     @BeforeEach

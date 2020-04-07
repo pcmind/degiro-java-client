@@ -527,6 +527,39 @@ public class DUtils {
             writer.value(value.toPlainString());
         }
     }
+    public static class OrderTimeListTypeAdapter extends TypeAdapter<List<DOrderTime>> {
+
+        @Override
+        public List<DOrderTime> read(JsonReader in) throws IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return null;
+            }
+
+            List<DOrderTime> list = new ArrayList<>();
+            in.beginArray();
+            while (in.hasNext()) {
+                final String s = in.nextString();
+                list.add(DOrderTime.getOrderByValue(s));
+            }
+            in.endArray();
+            return list;
+        }
+
+        @Override
+        public void write(JsonWriter out, List<DOrderTime> list) throws IOException {
+            if (list == null) {
+                out.nullValue();
+                return;
+            }
+
+            out.beginArray();
+            for (DOrderTime dOrderTime : list) {
+                out.value(dOrderTime.getStrValue());
+            }
+            out.endArray();
+        }
+    }
 
     public static class OrderTimeTypeAdapter extends TypeAdapter<DOrderTime> {
 
@@ -536,7 +569,8 @@ public class DUtils {
                 reader.nextNull();
                 return null;
             }
-            String value = reader.nextString();
+            //only list are coming from string other values are coming by name
+            int value = reader.nextInt();
 
             return DOrderTime.getOrderByValue(value);
 
@@ -552,7 +586,39 @@ public class DUtils {
             writer.value(value.getStrValue());
         }
     }
+    public static class OrderTypeListTypeAdapter extends TypeAdapter<List<DOrderType>> {
 
+        @Override
+        public void write(JsonWriter out, List<DOrderType> list) throws IOException {
+            if (list == null) {
+                out.nullValue();
+                return;
+            }
+
+            out.beginArray();
+            for (DOrderType dOrderType : list) {
+                out.value(dOrderType.getStrValue());
+            }
+            out.endArray();
+        }
+
+        @Override
+        public List<DOrderType> read(JsonReader in) throws IOException {
+            final JsonToken p = in.peek();
+            if (p == JsonToken.NULL) {
+                in.nextNull();
+                return null;
+            }
+            List<DOrderType> list = new ArrayList<DOrderType>();
+            in.beginArray();
+            while (in.hasNext()) {
+                final String s = in.nextString();
+                list.add(DOrderType.getOrderByValue(s));
+            }
+            in.endArray();
+            return list;
+        }
+    }
     public static class OrderTypeTypeAdapter extends TypeAdapter<DOrderType> {
 
         @Override
@@ -561,7 +627,11 @@ public class DUtils {
                 reader.nextNull();
                 return null;
             }
-            String value = reader.nextString();
+            /*
+            type when read from remote is always a number. when present in an array like DOrderType[] it is always by name
+            but a distinct serializer will be used
+            */
+            int value = reader.nextInt();
 
             return DOrderType.getOrderByValue(value);
 

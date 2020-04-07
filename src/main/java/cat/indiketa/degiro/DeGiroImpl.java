@@ -29,6 +29,7 @@ import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DTransaction;
 import cat.indiketa.degiro.model.DTransactions;
 import cat.indiketa.degiro.model.DUpdates;
 import cat.indiketa.degiro.model.DvwdSessionId;
@@ -58,8 +59,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,7 +72,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * @author indiketa
@@ -157,14 +157,14 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public List<DOrderHistoryRecord> getOrdersHistory(Calendar from, Calendar to) throws DeGiroException {
+    public List<DOrderHistoryRecord> getOrdersHistory(LocalDate from, LocalDate to) throws DeGiroException {
 
         DOrderHistory dOrderHistory = null;
         ensureLogged();
 
         try {
-            String fromStr = from.get(Calendar.DATE) + "%2F" + (from.get(Calendar.MONTH) + 1) + "%2F" + from.get(Calendar.YEAR);
-            String toStr = to.get(Calendar.DATE) + "%2F" + (to.get(Calendar.MONTH) + 1) + "%2F" + to.get(Calendar.YEAR);
+            String fromStr = toDateString(from);
+            String toStr = toDateString(to);
 
             DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/order-history?fromDate=" + fromStr + "&toDate=" + toStr + "&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
             dOrderHistory = gson.fromJson(getResponseData(response), DOrderHistory.class);
@@ -198,21 +198,25 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DTransactions getTransactions(Calendar from, Calendar to) throws DeGiroException {
+    public List<DTransaction> getTransactions(LocalDate from, LocalDate to) throws DeGiroException {
 
         DTransactions transactions = null;
         ensureLogged();
 
-        String fromStr = from.get(Calendar.DATE) + "%2F" + (from.get(Calendar.MONTH) + 1) + "%2F" + from.get(Calendar.YEAR);
-        String toStr = to.get(Calendar.DATE) + "%2F" + (to.get(Calendar.MONTH) + 1) + "%2F" + to.get(Calendar.YEAR);
+        String fromStr = toDateString(from);
+        String toStr = toDateString(to);
 
         transactions = httpGet(
                 DTransactions.class,
                 session.getConfig().getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
                 gson::fromJson
         );
-        return transactions;
+        return transactions.getData();
 
+    }
+
+    private String toDateString(LocalDate date) {
+        return date.getDayOfMonth() + "%2F" + date.getMonthValue() + "%2F" + date.getYear();
     }
 
     private void ensureLogged() throws DeGiroException {
@@ -313,7 +317,7 @@ public class DeGiroImpl implements DeGiro {
             return fromData;
         } catch (Exception e) {
             Throwables.throwIfInstanceOf(e, DeGiroException.class);
-            throw new DeGiroException("Unable to decode response '" + response + "'");
+            throw new DeGiroException("Unable to decode response '" + response + "'", e);
         }
     }
 
@@ -350,9 +354,7 @@ public class DeGiroImpl implements DeGiro {
             qs += "&productTypeId=" + type.getTypeCode();
         }
         qs += "&limit=" + limit;
-        if (offset > 0) {
-            qs += "&offset=" + offset;
-        }
+        qs += "&offset=" + offset;
 
         productSearch = httpGet(
                 DProductSearch.class,

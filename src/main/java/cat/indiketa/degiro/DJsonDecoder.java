@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class DJsonDecoder {
     private final Gson gson;
@@ -24,7 +26,12 @@ public class DJsonDecoder {
     public DJsonDecoder() {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(DProductType.class, new DUtils.ProductTypeAdapter());
+        builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeListTypeAdapter());
         builder.registerTypeAdapter(DOrderTime.class, new DUtils.OrderTimeTypeAdapter());
+        builder.registerTypeAdapter(new TypeToken<List<DOrderTime>>() {
+        }.getType(), new DUtils.OrderTimeListTypeAdapter());
+        builder.registerTypeAdapter(new TypeToken<List<DOrderType>>() {
+        }.getType(), new DUtils.OrderTypeListTypeAdapter());
         builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
         builder.registerTypeAdapter(DOrderAction.class, new DUtils.OrderActionTypeAdapter());
         builder.registerTypeAdapter(Calendar.class, new DUtils.CalendarTypeAdapter());
