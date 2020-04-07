@@ -21,7 +21,7 @@ public class DProductDescription {
     private boolean qualitySwitchable;
     private boolean qualitySwitchFree;
     private long vwdModuleId;
-    private long id;
+    private String id;
     private String name;
     @EqualsAndHashCode.Include
     private String isin;

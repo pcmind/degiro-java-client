@@ -17,12 +17,12 @@ public class DNewOrder {
     private DOrderAction action;
     private DOrderType orderType;
     private DOrderTime timeType;
-    private long productId;
+    private String productId;
     private long size;
     private BigDecimal limitPrice;
     private BigDecimal stopPrice;
 
-    public DNewOrder(DOrderAction action, DOrderType orderType, DOrderTime timeType, long productId, long size, BigDecimal limitPrice, BigDecimal stopPrice) {
+    public DNewOrder(DOrderAction action, DOrderType orderType, DOrderTime timeType, String productId, long size, BigDecimal limitPrice, BigDecimal stopPrice) {
         this.action = action;
         this.orderType = orderType;
         this.timeType = timeType;

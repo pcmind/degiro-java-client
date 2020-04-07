@@ -56,7 +56,7 @@ public interface DeGiro {
 
     DProductSearch searchProducts(String text, DProductType type, int limit, int offset) throws DeGiroException;
 
-    DProductDescriptions getProducts(List<Long> productIds) throws DeGiroException;
+    DProductDescriptions getProducts(List<String> productIds) throws DeGiroException;
 
     DOrderConfirmation checkOrder(DNewOrder order) throws DeGiroException;
 

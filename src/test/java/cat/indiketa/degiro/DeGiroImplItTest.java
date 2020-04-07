@@ -56,7 +56,7 @@ class DeGiroImplItTest {
         assertThrows(DeGiroException.class, () ->  deGiro.checkOrder(new DNewOrder(DOrderAction.SELL,
                 DOrderType.MARKET_ORDER,
                 DOrderTime.DAY,
-                999999,
+                "999999",
                 1,
                 null,
                 null)));
@@ -64,7 +64,7 @@ class DeGiroImplItTest {
         final DOrderConfirmation dOrderConfirmation = deGiro.checkOrder(new DNewOrder(DOrderAction.SELL,
                 DOrderType.MARKET_ORDER,
                 DOrderTime.DAY,
-                11112222,
+                "11112222",
                 1,
                 null,
                 null));

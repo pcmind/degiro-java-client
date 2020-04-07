@@ -11,7 +11,7 @@ import java.util.Map;
 @Data
 public class DProductDescriptions implements IValidable {
 
-    private Map<Long, DProductDescription> data;
+    private Map<String, DProductDescription> data;
 
     @Override
     public boolean isInvalid() {

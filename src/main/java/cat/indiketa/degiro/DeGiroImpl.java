@@ -318,17 +318,16 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DProductDescriptions getProducts(List<Long> productIds) throws DeGiroException {
-        if(productIds.isEmpty()) {
+    public DProductDescriptions getProducts(List<String> productIds) throws DeGiroException {
+        if(productIds == null || productIds.isEmpty()) {
             return null;
         }
         List<Header> headers = new ArrayList<>(1);
-        List<String> productIdStr = productIds.stream().map(String::valueOf).collect(Collectors.toList());
         return httpPost(
                 DProductDescriptions.class,
                session.getConfig().getProductSearchUrl(),
                 "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
-                productIdStr,
+                productIds,
                 headers,
                 gson::fromJson
         );
