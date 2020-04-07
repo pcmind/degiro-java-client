@@ -578,7 +578,7 @@ class DeGiroImplItTest {
     }
 
     private void prepareSuccessSecureConfig() {
-        prepareResponse().setUri("/login/secure/config").setMethod("GET").andReply(200, "{" +
+        prepareResponse().setUri("/login/secure/config").setMethod("GET").andReply(200, "{\"data\":{" +
                 "\"tradingUrl\": \"https://trader.degiro.nl/trading/secure/\"," +
                 "\"paUrl\": \"https://trader.degiro.nl/pa/secure/\"," +
                 "\"reportingUrl\": \"https://trader.degiro.nl/reporting/secure/\"," +
@@ -599,7 +599,7 @@ class DeGiroImplItTest {
                 "\"loginUrl\": \"https://trader.degiro.nl/login/pt\"," +
                 "\"sessionId\": \"111111111111111111111111111111.prod_b_112_2\"," +
                 "\"clientId\": 123456789" +
-                "}");
+                "}}");
     }
 
     private void prepareSuccessLogin() {
