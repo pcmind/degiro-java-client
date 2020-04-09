@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -84,6 +85,7 @@ public class DeGiroImpl implements DeGiro {
     private final DSession session;
     private final DJsonDecoder gson;
     private final DPricePoller pricePoller = new DPricePoller();
+    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd'%2F'MM'%2F'yyyy");
 
     public DeGiroImpl(DeGiroHost degiro, DCredentials credentials, DSession session, IDCommunication comm) {
         this.degiro = degiro;
@@ -163,8 +165,8 @@ public class DeGiroImpl implements DeGiro {
         ensureLogged();
 
         try {
-            String fromStr = toDateString(from);
-            String toStr = toDateString(to);
+            String fromStr = from.format(dateFormatter);
+            String toStr = to.format(dateFormatter);
 
             DResponse response = comm.getUrlData(session.getConfig().getReportingUrl(), "v4/order-history?fromDate=" + fromStr + "&toDate=" + toStr + "&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), null);
             dOrderHistory = gson.fromJson(getResponseData(response), DOrderHistory.class);
@@ -203,8 +205,8 @@ public class DeGiroImpl implements DeGiro {
         DTransactions transactions = null;
         ensureLogged();
 
-        String fromStr = toDateString(from);
-        String toStr = toDateString(to);
+        String fromStr = from.format(dateFormatter);
+        String toStr = to.format(dateFormatter);
 
         transactions = httpGet(
                 DTransactions.class,
@@ -213,10 +215,6 @@ public class DeGiroImpl implements DeGiro {
         );
         return transactions.getData();
 
-    }
-
-    private String toDateString(LocalDate date) {
-        return date.getDayOfMonth() + "%2F" + date.getMonthValue() + "%2F" + date.getYear();
     }
 
     private void ensureLogged() throws DeGiroException {
