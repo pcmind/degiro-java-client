@@ -36,6 +36,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -49,7 +52,6 @@ import java.util.Map;
  */
 public class DUtils {
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     public static DUpdates.DLastUpdate<List<DUpdate<DPortfolioProduct, String>>> convert(DRawPortfolio rawPortfolio) {
@@ -673,33 +675,60 @@ public class DUtils {
         }
     }
 
-    public static class DateTypeAdapter extends TypeAdapter<Date> {
+    public static class LocalDateTypeAdapter extends TypeAdapter<LocalDate> {
 
         @Override
-        public Date read(JsonReader reader) throws IOException {
+        public void write(JsonWriter writer, LocalDate value) throws IOException {
+            if (value == null) {
+                writer.nullValue();
+                return;
+            }
+            writer.value(value.toString());
+        }
+
+        @Override
+        public LocalDate read(JsonReader reader) throws IOException {
             if (reader.peek() == JsonToken.NULL) {
                 reader.nextNull();
                 return null;
             }
             String value = reader.nextString();
 
-            Date d = null;
+            LocalDate d = null;
             try {
-                d = DATE_FORMAT.parse(value);
-            } catch (ParseException e) {
+                d = LocalDate.parse(value);
+            } catch (DateTimeException e) {
                 throw new IllegalArgumentException("Date not parseable: " + value, e);
             }
             return d;
         }
+    }
+    public static class OffsetDateTimeTypeAdapter extends TypeAdapter<OffsetDateTime> {
 
         @Override
-        public void write(JsonWriter writer, Date value) throws IOException {
+        public void write(JsonWriter writer, OffsetDateTime value) throws IOException {
             if (value == null) {
                 writer.nullValue();
                 return;
             }
+            writer.value(value.toString());
+        }
 
-            writer.value(DATE_FORMAT.format(value));
+        @Override
+        public OffsetDateTime read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            String value = reader.nextString();
+
+            OffsetDateTime d = null;
+            try {
+                d = OffsetDateTime.parse(value);
+            } catch (DateTimeException e) {
+                throw new IllegalArgumentException("Date not parseable: " + value, e);
+            }
+            return d;
         }
     }
 

@@ -16,8 +16,9 @@ import com.google.gson.stream.JsonReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 public class DJsonDecoder {
@@ -35,7 +36,8 @@ public class DJsonDecoder {
         builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
         builder.registerTypeAdapter(DOrderAction.class, new DUtils.OrderActionTypeAdapter());
         builder.registerTypeAdapter(Calendar.class, new DUtils.CalendarTypeAdapter());
-        builder.registerTypeAdapter(Date.class, new DUtils.DateTypeAdapter());
+        builder.registerTypeAdapter(LocalDate.class, new DUtils.LocalDateTypeAdapter());
+        builder.registerTypeAdapter(OffsetDateTime.class, new DUtils.OffsetDateTimeTypeAdapter());
         this.gson = builder.create();
     }
 

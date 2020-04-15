@@ -3,7 +3,7 @@ package cat.indiketa.degiro.model;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -44,7 +44,7 @@ public class DProductDescription {
     private boolean sellAmountAllowed;
     private boolean isFund;
     private double closePrice;
-    private Date closePriceDate;
+    private LocalDate closePriceDate;
     private String category;
     private String currency;
 
