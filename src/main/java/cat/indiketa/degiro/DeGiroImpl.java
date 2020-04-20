@@ -358,7 +358,7 @@ public class DeGiroImpl implements DeGiro {
                 "v5/order/" + confirmationId + ";jsessionid=" + session.getJSessionId() + "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
                 orderToMap(order),
                 null,
-                gson::fromJson
+                gson::fromJsonData
         );
 
         return placedOrder;
@@ -399,7 +399,7 @@ public class DeGiroImpl implements DeGiro {
 
         ensureLogged();
         Map degiroOrder = new HashMap();
-        degiroOrder.put("buySell", order.getBuysell().getValue());
+        degiroOrder.put("buySell", order.getBuysell().name());
         degiroOrder.put("orderType", order.getOrderType().getValue());
         degiroOrder.put("productId", order.getProductId());
         degiroOrder.put("size", order.getSize());
@@ -500,7 +500,7 @@ tz:         Europe/Madrid
 
     private Map orderToMap(DNewOrder order) {
         Map degiroOrder = new HashMap();
-        degiroOrder.put("buySell", order.getAction().getValue());
+        degiroOrder.put("buySell", order.getAction().name());
         degiroOrder.put("orderType", order.getOrderType().getValue());
         degiroOrder.put("productId", order.getProductId());
         degiroOrder.put("size", order.getSize());

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -159,6 +160,24 @@ class DeGiroImplItTest {
     }
 
     @Test
+    void checkOrderFail() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/trading/secure/")
+                .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .setMethod("POST")
+                .setData(d -> new Gson().toJson(d).equals("{\"orderType\":0,\"buySell\":\"BUY\",\"productId\":\"16600513\",\"size\":15,\"price\":\"18.26\",\"timeType\":1}"))
+                .andReply(400, "{\"errors\":[{\"text\":\"order.error.scheduledDownTime\"}]}");
+
+
+        //then/when
+        final DNewOrder dNewOrder = new DNewOrder(DOrderAction.BUY, DOrderType.LIMITED, DOrderTime.DAY, "16600513", 15, new BigDecimal("18.26"), null);
+        assertThrows(DeGiroException.class, () -> deGiro.checkOrder(dNewOrder));
+
+    }
+
+    @Test
     void validSearch() throws DeGiroException {
         //given
         setupLoginResponse();
@@ -206,12 +225,12 @@ class DeGiroImplItTest {
         prepareResponse()
                 .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .setMethod("POST")
-                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":\"11112222\",\"size\":1,\"timeType\":1}"))
+                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":\"SELL\",\"productId\":\"11112222\",\"size\":1,\"timeType\":1}"))
                 .andReply(200, "{\"data\":{\"confirmationId\":\"11caa4dd-c1f2-4c0a-b1c2-e6f21c04a4be\",\"transactionFees\":[{\"id\":2,\"amount\":0.04,\"currency\":\"USD\"},{\"id\":3,\"amount\":0.50,\"currency\":\"EUR\"}]}}");
         prepareResponse()
                 .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .setMethod("POST")
-                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":\"999999\",\"size\":1,\"timeType\":1}"))
+                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":\"SELL\",\"productId\":\"999999\",\"size\":1,\"timeType\":1}"))
                 .andReply(300, "");
         //when/then
         //this should fail because of return code 300
