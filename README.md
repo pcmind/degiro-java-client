@@ -1,15 +1,43 @@
 # degiro-java-client
 
-Unofficial DeGiro stock boker java API client.
+Unofficial DeGiro stock broker java API client.
 
-This library implements all DeGiro primitive operations. It provides the same functionality of DeGiro web and makes it easier to automate your portfolio management. DeGiro java client provides a set of methods and objects that allow you to perform the same interactions as with the web trader. DeGiro could change their API in any moment. 
+This library implements all DeGiro primitive operations. It provides the same functionality of DeGiro web and makes it easier to automate your portfolio management. 
+
+VERY IMPORTANT: DeGiro could change their API in any moment so use this library at your own risk.
 
 If you have any questions, please open an issue.
 
 ## Usage
 
+### Adding lib to your build
+
+Maven artifact not yet release, in the meantime use [jitpack.io](https://jitpack.io/):
+
+Add [jitpack.io](https://jitpack.io/) repository:
+```
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+
+Add dependency:
+```
+<dependency>
+    <groupId>com.github.pcmind</groupId>
+    <artifactId>degiro-java-client</artifactId>
+    <version>master-SNAPSHOT</version>
+</dependency>
+```
+
 ### Obtain a DeGiro instance
-Add {maven_publish_pending} artifact to your project and then use ```DeGiroFactory``` to obtain a ```DeGiro``` instance.
+
+Maven artifact not yet release but in the mean time use jitpack:
+
+Add the artifact to your project and then use ```DeGiroFactory``` to obtain a ```DeGiro``` instance.
 
 ```java
 DCredentials creds = new DCredentials() {
@@ -27,36 +55,54 @@ DCredentials creds = new DCredentials() {
 
 DeGiro degiro = DeGiroFactory.newInstance(creds);
 ```
-If you don't want to create a new DeGiro session on each execution instantiate a DeGiro object with a DPersistentSession. DeGiro API will try to reuse session values (if previous session is expired a new one is obtained and stored).
+If you don't want to create a new DeGiro session on each execution instantiate a DeGiro object with a DPersistentSession. DeGiro API will try to reuse session values (expired session will be renewed automatically).
 
 ```java
 DeGiro degiro = DeGiroFactory.newInstance(creds, new DPersistentSession("/path/to/session.json"));
 ```
 
-### Get account data
+### Get delta sync update 
+For most operation Degiro web portal use a delta sync update polling mechanism to keep web view live data. 
+Web portal usualy request delta sync for multiple sections/tables at once to minimize numbers of requests and lag. 
+I recommend you do the same.
 
-```java
-//Obtain current orders
-List<DOrder> orders = degiro.getOrders();
+Deliberately library client class does not handle state management for the delta sync mechanist and only expose received delta sync operations.
+This way one can implement its own method to save records, and react to changes.
 
-//Obtain current portfolio
-DPortfolioProducts portfolioProducts = degiro.getPortfolio();
 
-//Obtain portfolioSummary
-DPortfolioSummary portfolioSummary = degiro.getPortfolioSummary();
+````java
 
-// Get cash funds
-DCashFunds cashFunds = degiro.getCashFunds();
+//use some kind of repository ...
+final Map<String, DOrder> orders = new HashMap<>();
+//use a repository for each of the available sections: portfolio, totalPortfolio, orders, historicalOrders, transactions, alerts, cashFunds;
 
-// Get last executed transactions
-DLastTransactions lastTransactions = degiro.getLastTransactions();
+//a location to keep track of last update token received (or processed)
+List<DUpdateToken> tokens = new ArrayList<>(DUpdateToken.allSections());
 
-// Get transactions between dates 
-Calendar c = Calendar.getInstance();
-Calendar c2 = Calendar.getInstance();
-c.add(Calendar.MONTH, -1);
-DTransactions transactions = degiro.getTransactions(c, c2);
-```
+//in some kind of loop do the following:
+
+//fetch detla updates from tokens to current state 
+final DUpdates dUpdates1 = deGiro.updateAll(tokens);
+
+//handle received updates with eventual changes (create/update/delete) 
+for (DUpdate<DOrder> update : dUpdates.getOrders().getUpdates()) {
+    switch (update.getType()) {
+        case DELETED:
+            orders.remove(update.getId());
+        case CREATED:
+            orders.put(update.getId(), update.getNew());
+        case UPDATED:
+            //if in-place update can't be used, use DOrder#copy() first to apply updates on object copy
+            update.update(orders.get(update.getId()));
+    }
+}
+//handle other sections (portfolio, totalPortfolio, orders, historicalOrders, transactions, alerts, cashFunds) the same way
+
+//record last used update tokens.
+tokens = dUpdates1.getTokens();
+
+````
+
 ### Search products
 
 ```java
@@ -69,9 +115,10 @@ for (DProduct product : ps.getProducts()) {
 }
 
 // Get product info by id, signature:
-// DProducts getProducts(List<Long> productIds);
-List<Long> productIds = new ArrayList<>();
-productIds.add(1482366L); // productId obtained in (orders, portfolio, transactions, searchProducts....)
+// DProducts getProducts(List<String> productIds);
+List<String> productIds = new ArrayList<>();
+//be aware that in some cases productId is a number and others a string. You can safly convert number to String for this request
+productIds.add("1482366"); // productId obtained in (orders, portfolio, transactions, searchProducts....)
 degiro.getProducts(productIds);
 DProductDescriptions products = degiro.getProducts(productIds);
 
@@ -104,7 +151,7 @@ while (true) {
 }
 
 ```
-By default, price updates are checked every 15 seconds. Polling frequency can be changed:
+By default, price updates are checked every 5 seconds. Polling frequency can be changed:
 
 ```java
 degiro.setPricePollingInterval(1, TimeUnit.MINUTES);
