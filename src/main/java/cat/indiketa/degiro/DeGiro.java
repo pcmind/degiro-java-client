@@ -2,6 +2,9 @@ package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.model.*;
+import cat.indiketa.degiro.model.updates.DUpdateSection;
+import cat.indiketa.degiro.model.updates.DUpdates;
+import cat.indiketa.degiro.model.updates.DUpdateToken;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,8 +18,6 @@ import java.util.concurrent.TimeUnit;
  */
 public interface DeGiro {
 
-    DCashFunds getCashFunds() throws DeGiroException;
-
     List<DCashMovement> getAccountOverview(LocalDate from, LocalDate to) throws DeGiroException;
 
     DClient getClientData() throws DeGiroException;
@@ -24,17 +25,14 @@ public interface DeGiro {
     DAccountInfo getAccountInfo() throws DeGiroException;
 
     /**
-     * One show update multiple tables instead of multiple calls to remote api
+     * One request to update multiple tables instead of multiple calls to remote api
      *
-     * @param lastOrderUpdate last receive orders lastUpdated
-     * @param lastPortfolioUpdate last receive portfolio lastUpdated
-     * @param lastPortfolioSummaryUpdate last receive portfolioSummary lastUpdated
-     * @param lastHistoricalOrders last historical orders
-     * @param lastTransactions last transactions
-     * @param lastAlerts last alerts
-     * @return
+     * @param tokens identifiers of section to update and start last token received
+     * @return change available that happened after last provided tokens
+     * @see DUpdateToken#allSections() create initial tokens for first request for all sections
+     * @see DUpdateToken#createInitial(DUpdateSection...)  create initial tokens for first request for selected sections
      */
-    DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate, long lastHistoricalOrders, long lastTransactions, long lastAlerts) throws DeGiroException ;
+    DUpdates updateAll(Collection<DUpdateToken> tokens) throws DeGiroException;
 
     List<DOrderHistoryRecord> getOrdersHistory(LocalDate from, LocalDate to) throws DeGiroException;
 

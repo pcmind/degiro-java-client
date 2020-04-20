@@ -16,7 +16,6 @@ import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
 import cat.indiketa.degiro.model.DConfigDictionary;
 import cat.indiketa.degiro.model.DFavorites;
-import cat.indiketa.degiro.model.DLastTransactions;
 import cat.indiketa.degiro.model.DLogin;
 import cat.indiketa.degiro.model.DNewOrder;
 import cat.indiketa.degiro.model.DOrder;
@@ -32,20 +31,13 @@ import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
 import cat.indiketa.degiro.model.DTransaction;
 import cat.indiketa.degiro.model.DTransactions;
-import cat.indiketa.degiro.model.DUpdates;
 import cat.indiketa.degiro.model.DvwdSessionId;
 import cat.indiketa.degiro.model.IValidable;
-import cat.indiketa.degiro.model.raw.DRawAlerts;
-import cat.indiketa.degiro.model.raw.DRawCashFunds;
-import cat.indiketa.degiro.model.raw.DRawHistoricalOrders;
-import cat.indiketa.degiro.model.raw.DRawOrders;
-import cat.indiketa.degiro.model.raw.DRawPortfolio;
-import cat.indiketa.degiro.model.raw.DRawPortfolioSummary;
-import cat.indiketa.degiro.model.raw.DRawTransactions;
 import cat.indiketa.degiro.model.raw.DRawVwdPrice;
+import cat.indiketa.degiro.model.updates.DUpdateToken;
+import cat.indiketa.degiro.model.updates.DUpdates;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
-import cat.indiketa.degiro.utils.DUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -65,6 +57,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +67,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author indiketa
@@ -97,66 +91,27 @@ public class DeGiroImpl implements DeGiro {
     }
 
     /**
-     * Get all updates at once to avoid roudtrips.
+     * Eficient delta sync update to receive model update.
      * Note: We can get each one of the argument separetly but from the API.
      *
-     * @param lastOrderUpdate            last receive orders lastUpdated
-     * @param lastPortfolioUpdate        last receive portfolio lastUpdated
-     * @param lastPortfolioSummaryUpdate last receive portfolioSummary lastUpdated
-     * @param lastHistoricalOrders       last historical orders
-     * @param lastTransactions           last transactions
-     * @param lastAlerts                 last alerts
+     * @param tokens update tokens on initial tokens
      * @return all available changes from between last update an now
      * @throws DeGiroException
      */
     @Override
-    public DUpdates updateAll(long lastOrderUpdate, long lastPortfolioUpdate, long lastPortfolioSummaryUpdate, long lastHistoricalOrders, long lastTransactions, long lastAlerts) throws DeGiroException {
-        DUpdates update = new DUpdates();
+    public DUpdates updateAll(Collection<DUpdateToken> tokens) throws DeGiroException {
+        DUpdates update;
         try {
-
-            DResponse response = getUpdateData(String.format("portfolio=%d&totalPortfolio=%d&orders=%d&historicalOrders=%d&transactions=%d&alerts=%d", lastPortfolioUpdate, lastPortfolioSummaryUpdate, lastOrderUpdate, lastHistoricalOrders, lastTransactions, lastAlerts), null);
+            final List<DUpdateToken> tokens1 = new ArrayList<>(tokens == null ? DUpdateToken.allSections() : tokens);
+            //ensure request has always same format/order better for proxy/cache hit
+            tokens1.sort(Comparator.comparingInt(o -> o.getSection().ordinal()));
+            DResponse response = getUpdateData(tokens1.stream().map(DUpdateToken::encode).collect(Collectors.joining("&")), null);
             String data = getResponseData(response);
-            //orders
-            DRawOrders rawOrders = gson.fromJson(data, DRawOrders.class);
-            update.setOrders(DUtils.convert(rawOrders));
-
-            //portfolio summary
-            DRawPortfolioSummary rawPortfolioSummary = gson.fromJson(data, DRawPortfolioSummary.class);
-            update.setPortfolioSummary(DUtils.convertPortfolioSummary(rawPortfolioSummary.getTotalPortfolio()));
-
-            //portfolio
-            DRawPortfolio rawPortfolio = gson.fromJson(data, DRawPortfolio.class);
-            update.setPortfolio(DUtils.convert(rawPortfolio));
-
-            final DRawAlerts dRawAlerts = gson.fromJson(data, DRawAlerts.class);
-            update.setAlerts(DUtils.convert(dRawAlerts));
-
-            final DRawTransactions dRawTransactions = gson.fromJson(data, DRawTransactions.class);
-            update.setTransactions(DUpdates.DLastUpdate.of(dRawTransactions.transactions.lastUpdated, null));
-
-            final DRawHistoricalOrders historicOrders = gson.fromJson(data, DRawHistoricalOrders.class);
-            update.setTransactions(DUpdates.DLastUpdate.of(historicOrders.historicalOrders.lastUpdated, null));
-            //TODO update historicalOrders, transactions, alerts
+            update = gson.fromJson(data, DUpdates.class);
         } catch (IOException e) {
             throw new DeGiroException("IOException while retrieving portfolio", e);
         }
         return update;
-    }
-
-    @Override
-    public DCashFunds getCashFunds() throws DeGiroException {
-
-        DCashFunds cashFunds = null;
-        ensureLogged();
-
-        try {
-            DResponse response = getUpdateData("cashFunds=0", null);
-            DRawCashFunds rawCashFunds = gson.fromJson(getResponseData(response), DRawCashFunds.class);
-            cashFunds = DUtils.convert(rawCashFunds);
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving cash funds", e);
-        }
-        return cashFunds;
     }
 
     @Override
@@ -444,11 +399,11 @@ public class DeGiroImpl implements DeGiro {
 
         ensureLogged();
         Map degiroOrder = new HashMap();
-        degiroOrder.put("buySell", order.getBuySell().getValue());
+        degiroOrder.put("buySell", order.getBuysell().getValue());
         degiroOrder.put("orderType", order.getOrderType().getValue());
         degiroOrder.put("productId", order.getProductId());
         degiroOrder.put("size", order.getSize());
-        degiroOrder.put("timeType", order.getOrderTime().getValue());
+        degiroOrder.put("timeType", order.getOrderTimeType().getValue());
         if (limit != null) {
             degiroOrder.put("price", limit.toPlainString());
         }

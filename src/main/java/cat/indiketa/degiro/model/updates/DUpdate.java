@@ -1,4 +1,4 @@
-package cat.indiketa.degiro.model;
+package cat.indiketa.degiro.model.updates;
 
 import com.google.common.base.Preconditions;
 
@@ -8,15 +8,14 @@ import java.util.function.Supplier;
 
 /**
  * @param <T> object type
- * @param <I> object id  type
  */
-public abstract class DUpdate<T, I> {
+public abstract class DUpdate<T> {
     /**
      * object identifier
      *
      * @return object identifier
      */
-    public abstract I getId();
+    public abstract String getId();
 
     public abstract Kind getType();
 
@@ -52,32 +51,32 @@ public abstract class DUpdate<T, I> {
                 .toString();
     }
 
-    public static <T, I> DUpdate<T, I> ofDelete(I id) {
+    public static <T> DUpdate<T> ofDelete(String id) {
         Preconditions.checkNotNull(id, "id");
         return new Delete<>(id);
     }
 
-    public static <T, I> DUpdate<T, I> ofCreate(I id, Supplier<T> d) {
+    public static <T> DUpdate<T> ofCreate(String id, Supplier<T> d) {
         Preconditions.checkNotNull(id, "id");
         return new Create<>(id, d);
     }
 
-    public static <T, I> DUpdate<T, I> ofUpdate(I id, Consumer<T> applyUpdate) {
+    public static <T> DUpdate<T> ofUpdate(String id, Consumer<T> applyUpdate) {
         Preconditions.checkNotNull(id, "id");
         return new Update<>(id, applyUpdate);
     }
 
-    static class Create<T, I> extends DUpdate<T, I> {
-        private final I id;
+    static class Create<T> extends DUpdate<T> {
+        private final String id;
         private final Supplier<T> data;
 
-        public Create(I id, Supplier<T> data) {
+        public Create(String id, Supplier<T> data) {
             this.id = id;
             this.data = data;
         }
 
         @Override
-        public I getId() {
+        public String getId() {
             return id;
         }
 
@@ -92,17 +91,17 @@ public abstract class DUpdate<T, I> {
         }
     }
 
-    static class Update<T, I> extends DUpdate<T, I> {
-        private final I id;
+    static class Update<T> extends DUpdate<T> {
+        private final String id;
         private final Consumer<T> update;
 
-        public Update(I id, Consumer<T> update) {
+        public Update(String id, Consumer<T> update) {
             this.id = id;
             this.update = update;
         }
 
         @Override
-        public I getId() {
+        public String getId() {
             return id;
         }
 
@@ -118,15 +117,15 @@ public abstract class DUpdate<T, I> {
         }
     }
 
-    static class Delete<T, I> extends DUpdate<T, I> {
-        private final I id;
+    static class Delete<T> extends DUpdate<T> {
+        private final String id;
 
-        public Delete(I id) {
+        public Delete(String id) {
             this.id = id;
         }
 
         @Override
-        public I getId() {
+        public String getId() {
             return id;
         }
 

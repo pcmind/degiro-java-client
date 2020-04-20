@@ -3,11 +3,11 @@ package cat.indiketa.degiro.model;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
+import java.time.OffsetDateTime;
 
 @Data
 public class DOrderHistoryRecord implements IValidable {
-    private Calendar created;
+    private OffsetDateTime created;
     private String orderId;
     private long productId;
     private BigDecimal size;
@@ -20,7 +20,7 @@ public class DOrderHistoryRecord implements IValidable {
     private int totalTradedSize;
     private Type type;
     private Status status;
-    private Calendar last;
+    private OffsetDateTime last;
     private boolean isActive;
 
     @Override

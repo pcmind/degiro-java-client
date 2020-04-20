@@ -1,9 +1,12 @@
 package cat.indiketa.degiro;
 
+import cat.indiketa.degiro.json.DLocalDateTimeDeserializer;
+import cat.indiketa.degiro.json.DUpdatesDeserializer;
 import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderTime;
 import cat.indiketa.degiro.model.DOrderType;
 import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.updates.DUpdates;
 import cat.indiketa.degiro.utils.DUtils;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -17,8 +20,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Calendar;
 import java.util.List;
 
 public class DJsonDecoder {
@@ -35,9 +38,11 @@ public class DJsonDecoder {
         }.getType(), new DUtils.OrderTypeListTypeAdapter());
         builder.registerTypeAdapter(DOrderType.class, new DUtils.OrderTypeTypeAdapter());
         builder.registerTypeAdapter(DOrderAction.class, new DUtils.OrderActionTypeAdapter());
-        builder.registerTypeAdapter(Calendar.class, new DUtils.CalendarTypeAdapter());
         builder.registerTypeAdapter(LocalDate.class, new DUtils.LocalDateTypeAdapter());
+        builder.registerTypeAdapter(LocalDateTime.class, new DLocalDateTimeDeserializer());
         builder.registerTypeAdapter(OffsetDateTime.class, new DUtils.OffsetDateTimeTypeAdapter());
+        builder.registerTypeAdapter(DUpdates.class, new DUpdatesDeserializer());
+
         this.gson = builder.create();
     }
 

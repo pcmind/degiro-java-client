@@ -3,6 +3,7 @@ package cat.indiketa.degiro.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@With
 public class DPortfolioProduct {
     protected String id;
     protected String positionType; //will be PRODUCT/CASH
@@ -49,6 +51,6 @@ public class DPortfolioProduct {
     protected BigDecimal todayRealizedFxPl;
 
     public DPortfolioProduct copy() {
-        return new DPortfolioProduct(id, positionType, size, price, value, accruedInterest, plBase, todayPlBase, portfolioValueCorrection, breakEvenPrice, averageFxRate, realizedProductPl, realizedFxPl, todayRealizedProductPl, todayRealizedFxPl);
+        return withId(id); //force copy
     }
 }
