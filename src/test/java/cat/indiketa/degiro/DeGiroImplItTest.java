@@ -1,7 +1,6 @@
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
-import cat.indiketa.degiro.exceptions.DValidationException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
@@ -57,7 +56,7 @@ class DeGiroImplItTest {
         setupLoginResponse();
         prepareResponse()
                 .setBase("https://trader.degiro.nl/reporting/secure/")
-                .setUri("v4/transactions?orderId=&product=&fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .setUri("v4/transactions?orderId=&product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .andReply(200, "{\"data\":[{\"id\":1111111,\"productId\":222222,\"date\":\"2020-03-09T19:02:05+01:00\",\"buysell\":\"S\",\"price\":620.0000,\"quantity\":-1,\"total\":620.0000000000,\"orderTypeId\":0,\"counterParty\":\"MK\",\"transfered\":false,\"fxRate\":1.1476,\"totalInBaseCurrency\":540.23600800000000000,\"feeInBaseCurrency\":-0.50,\"totalPlusFeeInBaseCurrency\":539.73600800000000000}]}");
 
         //when
@@ -79,13 +78,13 @@ class DeGiroImplItTest {
         setupLoginResponse();
         prepareResponse()
                 .setBase("https://trader.degiro.nl/reporting/secure/")
-                .setUri("v4/transactions?orderId=&product=&fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
-                .andReply(200, "{\"other\":\"hello\"}");
+                .setUri("v4/transactions?orderId=&product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .andReply(200, "{\"data\":\"hello\"}");
 
         //when
         final LocalDate from = LocalDate.parse("2020-04-06");
         final LocalDate to = LocalDate.parse("2020-04-07");
-        Assertions.assertThrows(DValidationException.class, () -> {
+        Assertions.assertThrows(DeGiroException.class, () -> {
             deGiro.getTransactions(from, to);
         });
     }
@@ -96,7 +95,7 @@ class DeGiroImplItTest {
         setupLoginResponse();
         prepareResponse()
                 .setBase("https://trader.degiro.nl/reporting/secure/")
-                .setUri("v4/order-history?fromDate=6%2F4%2F2020&toDate=7%2F4%2F2020&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .setUri("v4/order-history?fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .andReply(200, "{\"data\":[{\"created\":\"2020-03-30T14:04:54+01:00\",\"orderId\":\"2b1b2b3d-8f02-41d3-984e-f22ac90bda2b\",\"productId\":181116,\"size\":240.0000,\"price\":2.0100,\"buysell\":\"S\"," +
                         "\"orderTypeId\":0,\"orderTimeTypeId\":1,\"stopPrice\":0.0000,\"currentTradedSize\":0,\"totalTradedSize\":0,\"type\":\"CREATE\",\"status\":\"CONFIRMED\",\"last\":\"2020-03-30T14:05:54+02:00\",\"isActive\":false}," +
                         "{\"created\":\"2020-03-30T14:05:30+02:00\",\"orderId\":\"2b4b1b2d-8f02-42d3-934e-f12ac30bca2b\",\"productId\":111116,\"size\":240.0000,\"price\":2.0100,\"buysell\":\"S\"," +
@@ -167,12 +166,12 @@ class DeGiroImplItTest {
         prepareResponse()
                 .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .setMethod("POST")
-                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":11112222,\"size\":1,\"timeType\":1}"))
+                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":\"11112222\",\"size\":1,\"timeType\":1}"))
                 .andReply(200, "{\"data\":{\"confirmationId\":\"11caa4dd-c1f2-4c0a-b1c2-e6f21c04a4be\",\"transactionFees\":[{\"id\":2,\"amount\":0.04,\"currency\":\"USD\"},{\"id\":3,\"amount\":0.50,\"currency\":\"EUR\"}]}}");
         prepareResponse()
                 .setUri("v5/checkOrder;jsessionid=111111111111111111111111111111.prod_b_112_2?intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .setMethod("POST")
-                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":999999,\"size\":1,\"timeType\":1}"))
+                .setData(data -> new Gson().toJson(data).equals("{\"orderType\":2,\"buySell\":1,\"productId\":\"999999\",\"size\":1,\"timeType\":1}"))
                 .andReply(300, "");
         //when/then
         //this should fail because of return code 300
@@ -765,7 +764,8 @@ class DeGiroImplItTest {
                             return urlData;
                         }
                     }
-                    throw new RuntimeException("Unknow request base=" + base + ", uri:" + uri + ", headers:" + headers + ", method:" + method);
+                    final String s = data == null ? "null" : new Gson().toJson(data);
+                    throw new RuntimeException("Unknow request base=" + base + ", uri:" + uri + ", data: "+ s +", headers:" + headers + ", method:" + method);
                 }
         );
         prepareResponse().setBase("https://trader.degiro.nl").setUri("/login/secure/config ").setMethod("GET").andReply("{" +
