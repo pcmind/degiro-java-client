@@ -4,6 +4,7 @@ import cat.indiketa.degiro.exceptions.DInvalidCredentialsException;
 import cat.indiketa.degiro.exceptions.DeGiroException;
 import cat.indiketa.degiro.http.DResponse;
 import cat.indiketa.degiro.http.IDCommunication;
+import cat.indiketa.degiro.model.DCashMovement;
 import cat.indiketa.degiro.model.DNewOrder;
 import cat.indiketa.degiro.model.DOrderAction;
 import cat.indiketa.degiro.model.DOrderConfirmation;
@@ -25,12 +26,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DeGiroImplItTest {
@@ -87,6 +91,42 @@ class DeGiroImplItTest {
         Assertions.assertThrows(DeGiroException.class, () -> {
             deGiro.getTransactions(from, to);
         });
+    }
+
+    @Test
+    void accoutOverview() throws DeGiroException {
+        //given
+        setupLoginResponse();
+        prepareResponse()
+                .setBase("https://trader.degiro.nl/reporting/secure/")
+                .setUri("v6/accountoverview?fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .andReply("{\"data\":{\"cashMovements\":[{\"date\":\"2020-04-09T12:05:53+02:00\",\"valueDate\":\"2020-04-08T23:59:59+02:00\",\"id\":346456,\"description\":" +
+                        "\"Conversão do Fundo do Mercado Monetário: Vende 411,5786 @ 0,9862 EUR\",\"productId\":5173554,\"currency\":\"EUR\",\"balance\":{\"cashFund\":" +
+                        "[{\"participation\":1204.653600,\"price\":0.9862,\"id\":45435345}],\"unsettledCash\":-0.0412144100,\"total\":1187.9881659100},\"type\":" +
+                        "\"CASH_FUND_TRANSACTION\"},{\"date\":\"2020-04-08T00:00:00+02:00\",\"valueDate\":\"2020-04-07T00:00:00+02:00\",\"id\":0,\"description\":" +
+                        "\"Alteração do preço do Fundo do Mercado Monetário (EUR)\",\"productId\":5173554,\"currency\":\"EUR\",\"change\":-0.1616232200,\"balance\":" +
+                        "{\"cashFund\":[{\"participation\":1616.232200,\"price\":0.9862,\"id\":5173554}],\"unsettledCash\":-405.9400297300,\"total\":1187.9881659100}," +
+                        "\"type\":\"CASH_FUND_NAV_CHANGE\"},{\"date\":\"2020-04-07T17:45:43+02:00\",\"valueDate\":\"2020-04-07T17:45:43+02:00\",\"id\":34564561," +
+                        "\"orderId\":\"0334546-abf465-23523aab-2345\",\"description\":\"Crédito de divisa\",\"productId\":16600513,\"currency\":\"USD\",\"change\":441.00," +
+                        "\"balance\":{\"unsettledCash\":0.0019000000,\"total\":0.0019000000},\"exchangeRate\":1.0880,\"type\":\"CASH_TRANSACTION\"},{\"date\":" +
+                        "\"2020-04-07T17:45:43+02:00\",\"valueDate\":\"2020-04-07T17:45:43+02:00\",\"id\":27777222,\"orderId\":\"0334546-abf465-23523aab-2345\"," +
+                        "\"description\":\"Compra 30 VIRGIN GALACTIC HOLDINGS INC. COMMON STOCK@14,7 USD (US92766K1060)\",\"productId\":16600513,\"currency\":\"USD\"," +
+                        "\"change\":-441.0000000000,\"balance\":{\"unsettledCash\":-440.9981000000,\"total\":-440.9981000000},\"type\":\"TRANSACTION\"}]}}");
+
+        //when
+        final LocalDate from = LocalDate.parse("2020-04-06");
+        final LocalDate to = LocalDate.parse("2020-04-07");
+        final List<DCashMovement> transactions1 = deGiro.getAccountOverview(from, to);
+
+        //then
+        assertEquals(4, transactions1.size());
+        final DCashMovement dTransaction = transactions1.get(0);
+        assertFalse(dTransaction.isInvalid());
+        assertEquals(OffsetDateTime.parse("2020-04-09T12:05:53+02:00"), dTransaction.getDate());
+        assertEquals(OffsetDateTime.parse("2020-04-08T23:59:59+02:00"), dTransaction.getValueDate());
+        assertEquals(346456, dTransaction.getId());
+        assertEquals(5173554, dTransaction.getProductId());
+        assertNotNull(dTransaction.getBalance());
     }
 
     @Test

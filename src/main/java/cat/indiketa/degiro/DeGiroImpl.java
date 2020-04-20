@@ -10,7 +10,8 @@ import cat.indiketa.degiro.http.IDCommunication;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.D400ErrorResponse;
 import cat.indiketa.degiro.model.DAccountInfo;
-import cat.indiketa.degiro.model.DCashFunds;
+import cat.indiketa.degiro.model.DCashMovement;
+import cat.indiketa.degiro.model.DCashMovements;
 import cat.indiketa.degiro.model.DClient;
 import cat.indiketa.degiro.model.DConfig;
 import cat.indiketa.degiro.model.DConfigDictionary;
@@ -178,19 +179,19 @@ public class DeGiroImpl implements DeGiro {
     }
 
     @Override
-    public DLastTransactions getLastTransactions() throws DeGiroException {
-
-        DLastTransactions transactions = null;
+    public List<DCashMovement> getAccountOverview(LocalDate from, LocalDate to) throws DeGiroException {
+        DCashMovements records = null;
         ensureLogged();
 
-        try {
-            DResponse response = getUpdateData("transactions=0", null);
-            DRawTransactions rawTransactions = gson.fromJson(getResponseData(response), DRawTransactions.class);
-            transactions = DUtils.convert(rawTransactions);
-        } catch (IOException e) {
-            throw new DeGiroException("IOException while retrieving transactions", e);
-        }
-        return transactions;
+        String fromStr = from.format(dateFormatter);
+        String toStr = to.format(dateFormatter);
+
+        records = httpGet(
+                DCashMovements.class,
+                session.getConfig().getReportingUrl(), "v6/accountoverview?fromDate=" + fromStr + "&toDate=" + toStr + "&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
+                gson::fromJsonData
+        );
+        return records.getCashMovements();
     }
 
     @Override

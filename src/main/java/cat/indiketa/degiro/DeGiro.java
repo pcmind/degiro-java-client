@@ -17,7 +17,7 @@ public interface DeGiro {
 
     DCashFunds getCashFunds() throws DeGiroException;
 
-    DLastTransactions getLastTransactions() throws DeGiroException;
+    List<DCashMovement> getAccountOverview(LocalDate from, LocalDate to) throws DeGiroException;
 
     DClient getClientData() throws DeGiroException;
 
