@@ -15,6 +15,7 @@ public class DPlacedOrder implements IValidable {
 
     @Override
     public boolean isInvalid() {
-        return orderId == null;
+        //on creation orderId is filled but not on confirmation or change
+        return false;
     }
 }
