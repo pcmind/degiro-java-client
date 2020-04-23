@@ -12,13 +12,15 @@ package cat.indiketa.degiro.model;
  */
 public enum DProductType {
     ALL(0),
-    SHARES(1),
+    SHARES(1), //STOCK
     BONDS(2),
+    CURRENCY(3),
     FUTURES(7),
     OPTIONS(8),
     INVESTMENT_FUNDS(13),
     LEVERAGED_PRODUCTS(14),
     ETF(131),
+    INDEX(180),
     CASH(311),
     CFD(535),
     WARRANTS(536);
