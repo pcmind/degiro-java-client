@@ -44,7 +44,10 @@ public class DPortfolioProduct {
     protected Map<String, BigDecimal> todayPlBase;
     protected BigDecimal portfolioValueCorrection;
     protected BigDecimal breakEvenPrice;
-    protected long averageFxRate;
+    /**
+     * Average FX rate used to buy current portfolio entry. Will be 1 if same currency as base currency.
+     */
+    protected BigDecimal averageFxRate;
     protected BigDecimal realizedProductPl;
     protected BigDecimal realizedFxPl;
     protected BigDecimal todayRealizedProductPl;

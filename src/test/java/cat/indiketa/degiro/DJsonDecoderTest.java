@@ -122,7 +122,7 @@ class DJsonDecoderTest {
         dPortfolioProduct.setValue(new BigDecimal("0E-44"));
         dPortfolioProduct.setPlBase(ImmutableMap.of("EUR", new BigDecimal("-70.35")));
         dPortfolioProduct.setTodayPlBase(ImmutableMap.of("EUR", new BigDecimal("0E-44")));
-        dPortfolioProduct.setAverageFxRate(1L);
+        dPortfolioProduct.setAverageFxRate(new BigDecimal("1"));
         dPortfolioProduct.setPortfolioValueCorrection(new BigDecimal("0"));
         dPortfolioProduct.setBreakEvenPrice(new BigDecimal("0"));
         dPortfolioProduct.setRealizedProductPl(new BigDecimal("-68.69305987500000000"));
