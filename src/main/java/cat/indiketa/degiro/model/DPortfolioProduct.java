@@ -8,6 +8,10 @@ import lombok.With;
 import java.math.BigDecimal;
 import java.util.Map;
 
+/**
+ * Represent a portfolio product currently owned.
+ *
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,6 +47,14 @@ public class DPortfolioProduct {
      */
     protected Map<String, BigDecimal> todayPlBase;
     protected BigDecimal portfolioValueCorrection;
+    /**
+     * Average price paid for this product for each unit in product currency.
+     * <br>
+     * Fees are not taken into account.
+     * <br>
+     * Total price in base currency (without fees) can be calculated as
+     * <pre>(breakEvenPrice * size) * averageFxRate</pre>
+     */
     protected BigDecimal breakEvenPrice;
     /**
      * Average FX rate used to buy current portfolio entry. Will be 1 if same currency as base currency.

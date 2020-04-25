@@ -196,7 +196,7 @@ public class DeGiroImpl implements DeGiro {
                 }
             }
 
-            DConfig config =  httpGet(DConfig.class, degiro.getBaseUrl(), "/login/secure/config", gson::fromJsonData);
+            DConfig config = httpGet(DConfig.class, degiro.getBaseUrl(), "/login/secure/config", gson::fromJsonData);
             session.setConfig(config);
 
             DClient client = httpGet(DClient.class, config.getPaUrl(), "client?sessionId=" + session.getJSessionId(), gson::fromJsonData);
@@ -277,13 +277,13 @@ public class DeGiroImpl implements DeGiro {
 
     @Override
     public DProductDescriptions getProducts(List<String> productIds) throws DeGiroException {
-        if(productIds == null || productIds.isEmpty()) {
+        if (productIds == null || productIds.isEmpty()) {
             return null;
         }
         List<Header> headers = new ArrayList<>(1);
         return httpPost(
                 DProductDescriptions.class,
-               session.getConfig().getProductSearchUrl(),
+                session.getConfig().getProductSearchUrl(),
                 "v5/products/info?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
                 productIds,
                 headers,
@@ -740,14 +740,14 @@ tz:         Europe/Madrid
 
         private void subscribeOrUnsubscribe(String vwdSessionId, Collection<String> vwdIds, boolean subscribe, Set<String> supportedFields) throws DeGiroException {
             if (!vwdIds.isEmpty()) {
-                try{
-                   List<Header> headers = new ArrayList<>(1);
-                   headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
-                   HashMap<String, String> data = new HashMap<>();
-                   data.put("controlData", buildSubsciptionRequestString(vwdIds, supportedFields, subscribe));
-                   DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSessionId, data, headers);
-                   getResponseData(response);
-                   DLog.DEGIRO.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIds));
+                try {
+                    List<Header> headers = new ArrayList<>(1);
+                    headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
+                    HashMap<String, String> data = new HashMap<>();
+                    data.put("controlData", buildSubsciptionRequestString(vwdIds, supportedFields, subscribe));
+                    DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSessionId, data, headers);
+                    getResponseData(response);
+                    DLog.DEGIRO.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIds));
                 } catch (IOException e) {
                     throw new DeGiroException("IOException while subscribing to issues " + vwdIds, e);
                 }

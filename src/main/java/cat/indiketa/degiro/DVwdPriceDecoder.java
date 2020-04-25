@@ -96,6 +96,18 @@ public class DVwdPriceDecoder {
         Set<String> notifiedIssuers = new LinkedHashSet<>();
         for (DRawVwdPrice dRawVwdPrice : data) {
             final String m = dRawVwdPrice.getM();
+            /**
+             * Known m types:
+             * s ??
+             * a_req    ack request         (externalDataName,dataId)
+             * a_rel    ack release         (externalDataName)
+             * d        access Denied
+             * us       String              (dataId,value)
+             * us       Number              (dataId,value)
+             * ue       Unknown             (dataId,reason)
+             * h        heartbeatReceived
+             * sr       request session
+             */
             if ("sr".equals(m)) {
                 //[{"m":"sr"}]
                 fieldSubscriptionState.clear(); //we don't need the state any more
