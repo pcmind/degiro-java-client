@@ -2,6 +2,9 @@ package cat.indiketa.degiro.model;
 
 import lombok.Data;
 
+import javax.annotation.Nullable;
+import java.math.BigDecimal;
+
 @Data
 public class DTransaction implements IValidable {
 
@@ -9,16 +12,17 @@ public class DTransaction implements IValidable {
     private long productId;
     private String date;
     private DOrderAction buysell;
-    private double price;
+    private BigDecimal price;
     private long quantity;
-    private double total;
+    private BigDecimal total;
     private long orderTypeId;
     private String counterParty;
     private boolean transfered;
-    private double fxRate;
-    private double totalInBaseCurrency;
-    private double feeInBaseCurrency;
-    private double totalPlusFeeInBaseCurrency;
+    @Nullable
+    private BigDecimal fxRate;
+    private BigDecimal totalInBaseCurrency;
+    private BigDecimal feeInBaseCurrency;
+    private BigDecimal totalPlusFeeInBaseCurrency;
 
     @Override
     public boolean isInvalid() {
