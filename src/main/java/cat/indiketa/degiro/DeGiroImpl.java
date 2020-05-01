@@ -100,6 +100,7 @@ public class DeGiroImpl implements DeGiro {
      */
     @Override
     public DUpdates updateAll(Collection<DUpdateToken> tokens) throws DeGiroException {
+        ensureLogged();
         DUpdates update;
         try {
             final List<DUpdateToken> tokens1 = new ArrayList<>(tokens == null ? DUpdateToken.allSections() : tokens);
@@ -158,6 +159,7 @@ public class DeGiroImpl implements DeGiro {
     @Override
     public List<DTransaction> getTransactions(LocalDate from, LocalDate to) throws DeGiroException {
 
+        ensureLogged();
         DTransactions transactions = null;
         ensureLogged();
 
@@ -244,6 +246,7 @@ public class DeGiroImpl implements DeGiro {
 
     @Override
     public DConfigDictionary getProductsConfig() throws DeGiroException {
+        ensureLogged();
         return httpGet(DConfigDictionary.class, session.getConfig().getDictionaryUrl(), "?intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(), gson::fromJson);
     }
 
@@ -280,6 +283,7 @@ public class DeGiroImpl implements DeGiro {
         if (productIds == null || productIds.isEmpty()) {
             return null;
         }
+        ensureLogged();
         List<Header> headers = new ArrayList<>(1);
         return httpPost(
                 DProductDescriptions.class,
@@ -310,6 +314,7 @@ public class DeGiroImpl implements DeGiro {
         qs += "&limit=" + limit;
         qs += "&offset=" + offset;
 
+        ensureLogged();
         productSearch = httpGet(
                 DProductSearch.class,
                 session.getConfig().getProductSearchUrl(),
