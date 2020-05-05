@@ -3,6 +3,7 @@ package cat.indiketa.degiro.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -14,9 +15,13 @@ import java.util.Map;
 @NoArgsConstructor
 @Data
 @AllArgsConstructor
+@With
 public class DPortfolioSummary {
 
-    private BigDecimal cash;
+    /**
+     * Usually contains the same amount than the one present in freeSpaceNew[baseCurrency]
+     */
+    private BigDecimal cashFund;
     private String cashFundCompensationCurrency;
     private BigDecimal cashFundCompensation;
     private BigDecimal cashFundCompensationWithdrawn;
@@ -28,9 +33,8 @@ public class DPortfolioSummary {
     public DPortfolioSummary copy() {
         Map<String, BigDecimal> freeSpaceNewCopy = null;
         if (freeSpaceNew != null) {
-            freeSpaceNewCopy = new HashMap<>();
-            freeSpaceNewCopy.putAll(freeSpaceNew);
+            freeSpaceNewCopy = new HashMap<>(freeSpaceNew);
         }
-        return new DPortfolioSummary(cash, cashFundCompensationCurrency, cashFundCompensation, cashFundCompensationWithdrawn, cashFundCompensationPending, todayNonProductFees, totalNonProductFees, freeSpaceNewCopy);
+        return withFreeSpaceNew(freeSpaceNewCopy);
     }
 }
