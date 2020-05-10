@@ -3,6 +3,7 @@ package cat.indiketa.degiro.json;
 import cat.indiketa.degiro.log.DLog;
 import cat.indiketa.degiro.model.DAlert;
 import cat.indiketa.degiro.model.DCashFund;
+import cat.indiketa.degiro.model.DCopyable;
 import cat.indiketa.degiro.model.DHistoricalOrder;
 import cat.indiketa.degiro.model.DLastTransaction;
 import cat.indiketa.degiro.model.DOrder;
@@ -126,7 +127,7 @@ public class DUpdatesDeserializer implements JsonDeserializer<DUpdates> {
         return DLastUpdate.of(DUpdateToken.of(type, 0), sectionDecoder.apply(null));
     }
 
-    private <T> List<DUpdate<T>> decodeTable(
+    private <T extends DCopyable<T>> List<DUpdate<T>> decodeTable(
             JsonObject section,
             Class<T> typeCls,
             Supplier<T> typeFactory,
@@ -146,7 +147,7 @@ public class DUpdatesDeserializer implements JsonDeserializer<DUpdates> {
     /**
      * Singleton object are sent with a table intermediate object and without and id
      */
-    private <T> DUpdate<T> decodeSingle(
+    private <T extends DCopyable<T>> DUpdate<T> decodeSingle(
             JsonElement element,
             Class<T> typeCls,
             Supplier<T> typeFactory,
@@ -158,7 +159,7 @@ public class DUpdatesDeserializer implements JsonDeserializer<DUpdates> {
         return decodeRow(element, typeCls, typeFactory, context, "name");
     }
 
-    private <T> DUpdate<T> decodeRow(
+    private <T extends DCopyable<T>> DUpdate<T> decodeRow(
             JsonElement element,
             Class<T> typeCls,
             Supplier<T> typeFactory,

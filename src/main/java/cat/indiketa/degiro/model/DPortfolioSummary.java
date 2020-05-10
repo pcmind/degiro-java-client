@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @With
-public class DPortfolioSummary {
+public class DPortfolioSummary implements DCopyable<DPortfolioSummary> {
 
     /**
      * Usually contains the same amount than the one present in freeSpaceNew[baseCurrency]
@@ -30,6 +30,7 @@ public class DPortfolioSummary {
     private BigDecimal totalNonProductFees;
     private Map<String, BigDecimal> freeSpaceNew;
 
+    @Override
     public DPortfolioSummary copy() {
         Map<String, BigDecimal> freeSpaceNewCopy = null;
         if (freeSpaceNew != null) {

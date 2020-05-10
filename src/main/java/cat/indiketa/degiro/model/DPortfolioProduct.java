@@ -16,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @With
-public class DPortfolioProduct {
+public class DPortfolioProduct implements DCopyable<DPortfolioProduct> {
     protected String id;
     protected String positionType; //will be PRODUCT/CASH
     //price of single
@@ -65,6 +65,7 @@ public class DPortfolioProduct {
     protected BigDecimal todayRealizedProductPl;
     protected BigDecimal todayRealizedFxPl;
 
+    @Override
     public DPortfolioProduct copy() {
         return withId(id); //force copy
     }

@@ -1,12 +1,18 @@
 package cat.indiketa.degiro.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class DLastTransaction {
+@NoArgsConstructor
+@AllArgsConstructor
+@With
+public class DLastTransaction implements DCopyable<DLastTransaction> {
 
     private long id;
     private LocalDateTime date;
@@ -38,5 +44,10 @@ public class DLastTransaction {
      */
     public void setIsDeletable(boolean deletable) {
         isDeletable = deletable;
+    }
+
+    @Override
+    public DLastTransaction copy() {
+        return withId(id);
     }
 }

@@ -1,12 +1,18 @@
 package cat.indiketa.degiro.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Data
-public class DAlert {
+@NoArgsConstructor
+@AllArgsConstructor
+@With
+public class DAlert implements DCopyable<DAlert> {
     private long id;
     private String title;
     private String text;
@@ -22,4 +28,8 @@ public class DAlert {
      */
     private int type;
 
+    @Override
+    public DAlert copy() {
+        return withId(id);
+    }
 }

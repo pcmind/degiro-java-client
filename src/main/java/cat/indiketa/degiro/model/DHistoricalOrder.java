@@ -1,12 +1,18 @@
 package cat.indiketa.degiro.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class DHistoricalOrder {
+@NoArgsConstructor
+@AllArgsConstructor
+@With
+public class DHistoricalOrder implements DCopyable<DHistoricalOrder> {
     String id;
     /*
     date field is not a date, but a time in the day
@@ -22,4 +28,9 @@ public class DHistoricalOrder {
     DOrderType orderType;
     boolean retainedOrder;
     boolean sentToExchange;
+
+    @Override
+    public DHistoricalOrder copy() {
+        return withId(id); //force copy
+    }
 }

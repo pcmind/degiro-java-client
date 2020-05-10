@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class DOrder {
+public class DOrder implements DCopyable<DOrder> {
 
     private String id;
     private LocalDateTime date;
@@ -51,6 +51,7 @@ public class DOrder {
         this.orderTimeType = type;
     }
 
+    @Override
     public DOrder copy() {
         return new DOrder(id, date, productId, product, contractType, contractSize, currency, buysell, size, quantity, price, stopPrice, totalOrderValue, orderType, orderTimeType, isModifiable, isDeletable);
     }

@@ -1,5 +1,6 @@
 package cat.indiketa.degiro.model.updates;
 
+import cat.indiketa.degiro.model.DCopyable;
 import com.google.common.base.Preconditions;
 
 import java.util.StringJoiner;
@@ -9,7 +10,7 @@ import java.util.function.Supplier;
 /**
  * @param <T> object type
  */
-public abstract class DUpdate<T> {
+public abstract class DUpdate<T extends DCopyable<T>> {
     /**
      * object identifier
      *
@@ -51,22 +52,22 @@ public abstract class DUpdate<T> {
                 .toString();
     }
 
-    public static <T> DUpdate<T> ofDelete(String id) {
+    public static <T extends DCopyable<T>> DUpdate<T> ofDelete(String id) {
         Preconditions.checkNotNull(id, "id");
         return new Delete<>(id);
     }
 
-    public static <T> DUpdate<T> ofCreate(String id, Supplier<T> d) {
+    public static <T extends DCopyable<T>> DUpdate<T> ofCreate(String id, Supplier<T> d) {
         Preconditions.checkNotNull(id, "id");
         return new Create<>(id, d);
     }
 
-    public static <T> DUpdate<T> ofUpdate(String id, Consumer<T> applyUpdate) {
+    public static <T extends DCopyable<T>> DUpdate<T> ofUpdate(String id, Consumer<T> applyUpdate) {
         Preconditions.checkNotNull(id, "id");
         return new Update<>(id, applyUpdate);
     }
 
-    static class Create<T> extends DUpdate<T> {
+    static class Create<T extends DCopyable<T>> extends DUpdate<T> {
         private final String id;
         private final Supplier<T> data;
 
@@ -91,7 +92,7 @@ public abstract class DUpdate<T> {
         }
     }
 
-    static class Update<T> extends DUpdate<T> {
+    static class Update<T extends DCopyable<T>> extends DUpdate<T> {
         private final String id;
         private final Consumer<T> update;
 
@@ -117,7 +118,7 @@ public abstract class DUpdate<T> {
         }
     }
 
-    static class Delete<T> extends DUpdate<T> {
+    static class Delete<T extends DCopyable<T>> extends DUpdate<T> {
         private final String id;
 
         public Delete(String id) {
