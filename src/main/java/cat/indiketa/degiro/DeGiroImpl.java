@@ -25,7 +25,6 @@ import cat.indiketa.degiro.model.DOrderHistoryRecord;
 import cat.indiketa.degiro.model.DPlacedOrder;
 import cat.indiketa.degiro.model.DPrice;
 import cat.indiketa.degiro.model.DPriceHistory;
-import cat.indiketa.degiro.model.DPriceListener;
 import cat.indiketa.degiro.model.DProductDescriptions;
 import cat.indiketa.degiro.model.DProductSearch;
 import cat.indiketa.degiro.model.DProductType;
@@ -39,11 +38,11 @@ import cat.indiketa.degiro.model.updates.DUpdates;
 import cat.indiketa.degiro.session.DSession;
 import cat.indiketa.degiro.utils.DCredentials;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.reflect.TypeToken;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
@@ -63,9 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -175,6 +171,11 @@ public class DeGiroImpl implements DeGiro {
 
     }
 
+    @Override
+    public PricePoller getPricePoller() {
+        return pricePoller;
+    }
+
     private void ensureLogged() throws DeGiroException {
         if (Strings.isNullOrEmpty(session.getJSessionId()) || session.getClient() == null || session.getConfig() == null) {
             login();
@@ -211,37 +212,6 @@ public class DeGiroImpl implements DeGiro {
     public DAccountInfo getAccountInfo() throws DeGiroException {
         ensureLogged();
         return httpGet(DAccountInfo.class, session.getConfig().getTradingUrl(), "v5/account/info/" + session.getClient().getIntAccount() + ";jsessionid=" + session.getJSessionId(), gson::fromJsonData);
-    }
-
-
-    @Override
-    public void setPricePollingInterval(int duration, TimeUnit unit) throws DeGiroException {
-        pricePoller.setPollingInterval(duration, unit);
-    }
-
-    @Override
-    public void setPriceListener(DPriceListener priceListener) {
-        this.pricePoller.setPriceListener(priceListener);
-    }
-
-    @Override
-    public void unsubscribeToPrice(String vwdIssueId) {
-        pricePoller.unsubscribe(Collections.singletonList(vwdIssueId));
-    }
-
-    @Override
-    public void subscribeToPrice(String vwdIssueId) throws DeGiroException {
-        pricePoller.subscribe(Collections.singletonList(vwdIssueId));
-    }
-
-    @Override
-    public void subscribeToPrice(Collection<String> vwdIssueId) throws DeGiroException {
-        pricePoller.subscribe(vwdIssueId);
-    }
-
-    @Override
-    public void clearPriceSubscriptions() {
-        pricePoller.clear();
     }
 
     @Override
@@ -614,50 +584,32 @@ tz:         Europe/Madrid
         T transform(String data, Class<T> cls) throws Exception;
     }
 
-    private class DPricePoller implements Closeable {
+    private class DPricePoller implements PricePoller, Closeable {
         private final DVwdPriceDecoder vwdDecoder = new DVwdPriceDecoder();
         private final Set<String> subscriptions = new ConcurrentSkipListSet<>();
-        private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
-                1,
-                new ThreadFactoryBuilder().setNameFormat("degiro-poller-%d").setDaemon(true).build()
-        );
+
         private final Type rawPriceData = new TypeToken<List<DRawVwdPrice>>() {
         }.getType();
         private String vwdSessionId;
-        private DPriceListener priceListener;
-        //must be set just after login
-        private long pollingInterval = TimeUnit.SECONDS.toMillis(5);
-        private Future<?> task;
 
-        public synchronized void setPriceListener(DPriceListener priceListener) {
-            this.priceListener = priceListener;
-            startPollingIfRequired();
-        }
-
-        public synchronized void setPollingInterval(long pollingInterval, TimeUnit unit) {
-            this.pollingInterval = unit.toMillis(pollingInterval);
-            if (task != null) {
-                task.cancel(false);
-                task = null;
-                startPollingIfRequired();
-            }
-        }
+        private boolean open = true;
 
         public synchronized void subscribe(Collection<String> vwdIssueIds) {
-            if (task != null && subscriptions.isEmpty()) {
+            Preconditions.checkState(open, "Poller already disposed");
+            if (vwdSessionId != null && !vwdIssueIds.isEmpty()) {
                 //only subscribe new subscriptions, older ones where already subscribed
                 final Set<String> difference = Sets.difference(Sets.newHashSet(vwdIssueIds), subscriptions);
                 subscribeToPriceUpdates(difference, true);
             }
 
             this.subscriptions.addAll(vwdIssueIds);
-            startPollingIfRequired();
         }
 
         public synchronized void unsubscribe(Collection<String> vwdIssueId) {
+            Preconditions.checkState(open, "Poller already disposed");
             try {
                 //we just need to unsubscribe if subscribed
-                if (task != null && subscriptions.isEmpty()) {
+                if (vwdSessionId != null && !vwdIssueId.isEmpty()) {
                     subscribeToPriceUpdates(vwdIssueId, false);
                 }
             } catch (Exception e) {
@@ -668,30 +620,23 @@ tz:         Europe/Madrid
             }
         }
 
-        private void startPollingIfRequired() {
-            if (task == null && priceListener != null && !subscriptions.isEmpty()) {
-                //start polling for updates
-                task = scheduler.scheduleAtFixedRate(this::poll, 0, pollingInterval, TimeUnit.MILLISECONDS);
-            }
-        }
-
-        public synchronized void clear() {
+        public synchronized void unsubscribeAll() {
+            Preconditions.checkState(open, "Poller already disposed");
             try {
-                task.cancel(true);
                 unsubscribe(Lists.newArrayList(subscriptions));
             } catch (Exception e) {
                 subscriptions.clear();
-                task = null;
             }
         }
 
         @Override
         public synchronized void close() {
-            scheduler.shutdownNow();
+            open = false;
             vwdDecoder.resetState();
         }
 
-        public synchronized void poll() {
+        public synchronized Collection<DPrice> poll() {
+            Preconditions.checkState(open, "Poller already disposed");
             try {
                 ensureLogged();
                 if (vwdSessionId == null) {
@@ -701,13 +646,7 @@ tz:         Europe/Madrid
                 }
                 final List<DRawVwdPrice> data = checkPriceChanges(vwdSessionId);
 
-                List<DPrice> prices = vwdDecoder.decode(data);
-
-                if (priceListener != null) {
-                    for (DPrice price : prices) {
-                        priceListener.priceChanged(price);
-                    }
-                }
+                return vwdDecoder.decode(data);
             } catch (SessionExpiredException e) {
                 DLog.DEGIRO.error("Session " + vwdSessionId + " has expired");
                 vwdDecoder.resetState();
@@ -717,6 +656,7 @@ tz:         Europe/Madrid
             } catch (Exception e) {
                 DLog.DEGIRO.error("Exception while updating prices", e);
             }
+            return Collections.emptyList();
         }
 
         /**
@@ -749,7 +689,7 @@ tz:         Europe/Madrid
                     List<Header> headers = new ArrayList<>(1);
                     headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
                     HashMap<String, String> data = new HashMap<>();
-                    data.put("controlData", buildSubsciptionRequestString(vwdIds, supportedFields, subscribe));
+                    data.put("controlData", buildSubscriptionRequestString(vwdIds, supportedFields, subscribe));
                     DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSessionId, data, headers);
                     getResponseData(response);
                     DLog.DEGIRO.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIds));
@@ -774,7 +714,7 @@ tz:         Europe/Madrid
             return vwdSession.getSessionId();
         }
 
-        private String buildSubsciptionRequestString(Collection<String> subscribedVwdIssues, Collection<String> fields, boolean subscribe) {
+        private String buildSubscriptionRequestString(Collection<String> subscribedVwdIssues, Collection<String> fields, boolean subscribe) {
             final String str = subscribe ? "req(" : "rel(";
             StringBuilder requestedIssues = new StringBuilder();
             for (String issueId : subscribedVwdIssues) {

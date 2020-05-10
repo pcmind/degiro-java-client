@@ -1,16 +1,31 @@
 package cat.indiketa.degiro;
 
 import cat.indiketa.degiro.exceptions.DeGiroException;
-import cat.indiketa.degiro.model.*;
+import cat.indiketa.degiro.model.DAccountInfo;
+import cat.indiketa.degiro.model.DCashMovement;
+import cat.indiketa.degiro.model.DClient;
+import cat.indiketa.degiro.model.DConfigDictionary;
+import cat.indiketa.degiro.model.DNewOrder;
+import cat.indiketa.degiro.model.DOrder;
+import cat.indiketa.degiro.model.DOrderConfirmation;
+import cat.indiketa.degiro.model.DOrderHistoryRecord;
+import cat.indiketa.degiro.model.DPlacedOrder;
+import cat.indiketa.degiro.model.DPrice;
+import cat.indiketa.degiro.model.DPriceHistory;
+import cat.indiketa.degiro.model.DProductDescriptions;
+import cat.indiketa.degiro.model.DProductSearch;
+import cat.indiketa.degiro.model.DProductType;
+import cat.indiketa.degiro.model.DTransaction;
 import cat.indiketa.degiro.model.updates.DUpdateSection;
-import cat.indiketa.degiro.model.updates.DUpdates;
 import cat.indiketa.degiro.model.updates.DUpdateToken;
+import cat.indiketa.degiro.model.updates.DUpdates;
 
+import java.io.Closeable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -38,17 +53,12 @@ public interface DeGiro {
 
     List<DTransaction> getTransactions(LocalDate from, LocalDate to) throws DeGiroException;
 
-    void setPriceListener(DPriceListener priceListener);
-
-    void setPricePollingInterval(int duration, TimeUnit unit) throws DeGiroException;
-
-    void unsubscribeToPrice(String vwdIssueId) ;
-    
-    void subscribeToPrice(String vwdIssueId) throws DeGiroException;
-
-    void subscribeToPrice(Collection<String> vwdIssueId) throws DeGiroException;
-
-    void clearPriceSubscriptions();
+    /**
+     * Price poll instance to manages subscription and get updates on products prices.
+     *
+     * @return client poller instance
+     */
+    PricePoller getPricePoller();
 
     DConfigDictionary getProductsConfig() throws DeGiroException;
 
@@ -75,4 +85,27 @@ public interface DeGiro {
     boolean isConnected();
 
     void close();
+
+    interface PricePoller extends Closeable {
+
+        void subscribe(Collection<String> vwdIssueId) throws DeGiroException;
+
+        default void subscribe(String vwdIssueId) throws DeGiroException {
+            subscribe(Collections.singletonList(vwdIssueId));
+        }
+
+        void unsubscribe(Collection<String> vwdIssueId) throws DeGiroException;
+
+        default void unsubscribe(String vwdIssueId) throws DeGiroException {
+            unsubscribe(Collections.singletonList(vwdIssueId));
+        }
+
+        /**
+         * Clear subscriptions.
+         */
+        void unsubscribeAll();
+
+
+        Collection<DPrice> poll();
+    }
 }

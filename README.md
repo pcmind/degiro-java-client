@@ -129,38 +129,30 @@ for (DProductDescription value : products.getData().values()) {
 ```
 
 ### Subscribe to product price updates
+Some product fields may be incrementally update baes on subscriptions. 
+
+IMPORTANT: Product subscription must be requested using **vwdId** present in product fields and not  product **id**.
 
 ```java
-
-// Register a price update listener (called on price update)
-degiro.setPriceListener(new DPriceListener() {
-    @Override
-    public void priceChanged(DPrice price) {
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(price));
-    }
-});
+//get poller instance
+PricePoller poller = degiro.getPricePoller();
 
 // Create a vwdIssueId list. Note that vwdIssueId is NOT a productId (vwdIssueId is a DProduct field).
 List<Long> vwdIssueIds = new ArrayList<>(1);
 vwdIssueIds.add(280099308L); // Example product vwdIssueId
-degiro.subscribeToPrice(vwdIssueIds); // Callable multiple times with different products. 
+poller.subscribe(vwdIssueIds); // Callable multiple times with different products. 
+//poller will keep trak of subscribed products and renew session if requiered
 
-// You need some type of control loop, background thread, etc... to prevent JVM termination (out of this scope)
-while (true) {
-   Thread.sleep(1000);
-}
+//now one must use some kind of scheduler to get price updates
+//usualy web platform does call updates every seconds or so
+Collection<DPrice> updates = poller.poll();
 
+//Clear all subscriptions:
+poller.unsubscribeAll();
 ```
-By default, price updates are checked every 5 seconds. Polling frequency can be changed:
 
-```java
-degiro.setPricePollingInterval(1, TimeUnit.MINUTES);
-```
-Clear all subscriptions:
-
-```java
-degiro.clearPriceSubscriptions();
-```
+A schedule of some king should be used to poll updates but its implementation is out of the scope
+of this library.
 
 ### Order management
 Orders are placed in two steps: check order (to ensure order factibility) and confirmation. When DConfirmation status is 0 then the order is placed successfully.
