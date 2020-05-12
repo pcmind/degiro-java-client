@@ -1,7 +1,10 @@
 package cat.indiketa.degiro.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.With;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,7 +15,10 @@ import java.util.List;
  */
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class DProductDescription {
+@AllArgsConstructor
+@NoArgsConstructor
+@With
+public class DProductDescription implements DCopyable<DProductDescription> {
 
     private String feedQuality;
     private long orderBookDepth;
@@ -43,9 +49,13 @@ public class DProductDescription {
     private boolean combinedOrderAllowed;
     private boolean sellAmountAllowed;
     private boolean isFund;
-    private double closePrice;
+    private double closePrice;  
     private LocalDate closePriceDate;
     private String category;
     private String currency;
 
+    @Override
+    public DProductDescription copy() {
+        return withId(id);
+    }
 }
