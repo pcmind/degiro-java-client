@@ -8,6 +8,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Doubles;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
  * Non thread safe price event batch decoder.
  */
 public class DVwdPriceDecoder {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DVwdPriceDecoder.class);
     private static final DateTimeFormatter HM_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -164,8 +167,11 @@ public class DVwdPriceDecoder {
         if(combined == null && e.getLastDate() != null && e.getLastTime() != null) {
             combined = e.getLastDate() +" " + e.getLastTime();
         }
-        if(dateTime == null) {
+        if(dateTime == null && combined != null) {
             dateTime = decodeDateTime(e, combined);
+        }else{
+            LOGGER.warn("No date time in {}", e);
+            return e;
         }
 
         return e.withCombinedLastDateTime(combined).withLastDateTime(dateTime);
