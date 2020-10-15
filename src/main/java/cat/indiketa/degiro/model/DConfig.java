@@ -19,7 +19,6 @@ public class DConfig implements IValidable {
     private String productSearchUrl;
     private String dictionaryUrl;
     private String taskManagerUrl;
-    private String firstLoginWizardUrl;
     private String loginUrl;
     private String vwdGossipsUrl;
     private String companiesServiceUrl;
@@ -39,7 +38,6 @@ public class DConfig implements IValidable {
                 productSearchUrl == null ||
                 dictionaryUrl == null ||
                 taskManagerUrl == null ||
-                firstLoginWizardUrl == null ||
                 loginUrl == null ||
                 vwdGossipsUrl == null ||
                 companiesServiceUrl == null ||
