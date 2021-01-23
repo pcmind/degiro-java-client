@@ -54,6 +54,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -673,10 +674,7 @@ tz:         Europe/Madrid
 
         private List<DRawVwdPrice> checkPriceChanges(String vwdSession) throws DeGiroException {
             try {
-                List<Header> headers = new ArrayList<>(1);
-                headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
-
-                DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSession, null, headers);
+                DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSession, null, headers());
                 return gson.fromJson(getResponseData(response), rawPriceData);
             } catch (IOException e) {
                 throw new DeGiroException("IOException while subscribing to issues", e);
@@ -686,11 +684,9 @@ tz:         Europe/Madrid
         private void subscribeOrUnsubscribe(String vwdSessionId, Collection<String> vwdIds, boolean subscribe, Set<String> supportedFields) throws DeGiroException {
             if (!vwdIds.isEmpty()) {
                 try {
-                    List<Header> headers = new ArrayList<>(1);
-                    headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
                     HashMap<String, String> data = new HashMap<>();
                     data.put("controlData", buildSubscriptionRequestString(vwdIds, supportedFields, subscribe));
-                    DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSessionId, data, headers);
+                    DResponse response = comm.getUrlData(degiro.getQuoteCastUrl(), "/" + vwdSessionId, data, headers());
                     getResponseData(response);
                     DLog.DEGIRO.info("Subscribed successfully for issues " + Joiner.on(", ").join(vwdIds));
                 } catch (IOException e) {
@@ -700,18 +696,33 @@ tz:         Europe/Madrid
         }
 
         private String newVwdSession() throws DeGiroException {
-            List<Header> headers = new ArrayList<>(1);
-            headers.add(new BasicHeader("Origin", session.getConfig().getTradingUrl()));
             HashMap<String, String> data = new HashMap();
             data.put("referrer", degiro.getBaseUrl());
             DvwdSessionId vwdSession = httpPost(
                     DvwdSessionId.class,
-                    degiro.getQuoteCastUrl(), "/request_session?version=1.0.20180305&userToken=" + session.getClient().getId(),
+                    degiro.getQuoteCastUrl(), "/request_session?version=1.0.20201211&userToken=" + session.getClient().getId(),
                     data,
-                    headers,
+                    headers(),
                     gson::fromJson
             );
             return vwdSession.getSessionId();
+        }
+
+        private List<Header> headers() {
+            return Arrays.asList(
+                    new BasicHeader("Host", "degiro.quotecast.vwdservices.com"),
+                    new BasicHeader("Connection", "keep-alive"),
+                    new BasicHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36"),
+                    new BasicHeader("Content-Type", "text/plain;charset=UTF-8"),
+                    new BasicHeader("Accept", "*/*"),
+                    new BasicHeader("Origin", "https://trader.degiro.nl"),
+                    new BasicHeader("Sec-Fetch-Site", "cross-site"),
+                    new BasicHeader("Sec-Fetch-Mode", "cors"),
+                    new BasicHeader("Sec-Fetch-Dest", "empty"),
+                    new BasicHeader("Referer", "https://trader.degiro.nl/"),
+                    new BasicHeader("Accept-Encoding", "gzip, deflate, br"),
+                    new BasicHeader("Accept-Language", "pt-PT,pt;q=0.9,en-GB;q=0.8,en;q=0.7,en-US;q=0.6")
+            );
         }
 
         private String buildSubscriptionRequestString(Collection<String> subscribedVwdIssues, Collection<String> fields, boolean subscribe) {

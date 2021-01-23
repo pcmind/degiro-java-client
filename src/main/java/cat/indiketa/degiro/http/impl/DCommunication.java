@@ -86,7 +86,7 @@ public class DCommunication implements IDCommunication {
 
         if (headers != null) {
             for (Header header : headers) {
-                request.addHeader(header);
+                request.setHeader(header);
             }
         }
 
