@@ -225,6 +225,8 @@ public class DUtils {
                 final int i = value.indexOf("/");
                 if(i >0) {
                     d = LocalDate.of(LocalDate.now().getYear(), Integer.parseInt(value.substring(i+1)),Integer.parseInt(value.substring(0, i)));
+                }else if (value.indexOf(":")>0) {
+                    d = LocalDate.now(); //in some cases if day is today we receive time (eg: "09:35") instead of date
                 }else{
                     d = LocalDate.parse(value);
                 }
