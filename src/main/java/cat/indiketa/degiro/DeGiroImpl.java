@@ -165,7 +165,7 @@ public class DeGiroImpl implements DeGiro {
 
         transactions = httpGet(
                 DTransactions.class,
-                session.getConfig().getReportingUrl(), "v4/transactions?orderId=&product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
+                session.getConfig().getReportingUrl(), "v4/transactions?product=&fromDate=" + fromStr + "&toDate=" + toStr + "&groupTransactionsByOrder=false&intAccount=" + session.getClient().getIntAccount() + "&sessionId=" + session.getJSessionId(),
                 gson::fromJson
         );
         return transactions.getData();

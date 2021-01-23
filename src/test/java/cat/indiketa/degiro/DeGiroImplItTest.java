@@ -61,7 +61,7 @@ class DeGiroImplItTest {
         setupLoginResponse();
         prepareResponse()
                 .setBase("https://trader.degiro.nl/reporting/secure/")
-                .setUri("v4/transactions?orderId=&product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .setUri("v4/transactions?product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .andReply(200, "{\"data\":[{\"id\":1111111,\"productId\":222222,\"date\":\"2020-03-09T19:02:05+01:00\",\"buysell\":\"S\",\"price\":620.0000,\"quantity\":-1,\"total\":620.0000000000,\"orderTypeId\":0,\"counterParty\":\"MK\",\"transfered\":false,\"fxRate\":1.1476,\"totalInBaseCurrency\":540.23600800000000000,\"feeInBaseCurrency\":-0.50,\"totalPlusFeeInBaseCurrency\":539.73600800000000000}]}");
 
         //when
@@ -83,7 +83,7 @@ class DeGiroImplItTest {
         setupLoginResponse();
         prepareResponse()
                 .setBase("https://trader.degiro.nl/reporting/secure/")
-                .setUri("v4/transactions?orderId=&product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
+                .setUri("v4/transactions?product=&fromDate=06%2F04%2F2020&toDate=07%2F04%2F2020&groupTransactionsByOrder=false&intAccount=6000001&sessionId=111111111111111111111111111111.prod_b_112_2")
                 .andReply(200, "{\"data\":\"hello\"}");
 
         //when
