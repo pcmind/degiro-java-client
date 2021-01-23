@@ -31,6 +31,8 @@ public class DPortfolioSummary implements DCopyable<DPortfolioSummary> {
     private BigDecimal totalCash;
     private BigDecimal flatexCash;
     private BigDecimal degiroCash;
+    private BigDecimal totalDepositWithdrawal;
+    private BigDecimal todayDepositWithdrawal;
     private Map<String, BigDecimal> freeSpaceNew;
 
     @Override
